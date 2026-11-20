@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IoT Gateway Dashboard - Đồ Án 2</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root { --bg: #0f172a; --card: #1e293b; --border: #334155; --text: #f8fafc; --muted: #94a3b8; --primary: #2563eb; --danger: #dc2626; --success: #059669; }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 16px; }
+    .container { max-width: 1050px; margin: auto; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+    .hidden { display: none !important; }
+    
+    /* Login Screen */
+    .login-box { max-width: 400px; margin: 80px auto; }
+    input, select { width: 100%; padding: 10px 12px; margin: 8px 0 14px; background: #0f172a; border: 1px solid var(--border); color: white; border-radius: 8px; }
+    button { background: var(--primary); color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s; }
+    button:hover { opacity: 0.9; }
+    button:disabled { background: #475569; cursor: not-allowed; opacity: 0.6; }
+    button.danger { background: var(--danger); }
+    button.success { background: var(--success); }
+    button.outline { background: transparent; border: 1px solid var(--border); }
+
+    /* Header & Tabs */
+    header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 20px; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+    .tab-btn { background: var(--card); border: 1px solid var(--border); color: var(--muted); }
+    .tab-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+    /* Grid & Metrics */
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+    .metric-val { font-size: 34px; font-weight: 700; color: #38bdf8; margin-top: 8px; }
+    .alert-banner { background: rgba(220, 38, 38, 0.2); border: 1px solid var(--danger); color: #fca5a5; padding: 14px; border-radius: 10px; margin-bottom: 16px; font-weight: 600; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+
+    /* Relay Controls */
+    .relay-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--border); }
+    .relay-item:last-child { border-bottom: none; }
+    .badge { padding: 3px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; background: #334155; }
+    .badge.admin { background: #7c3aed; }
+    .badge.operator { background: #0284c7; }
+
+    /* Table */
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); }
+    .checkbox-group { display: flex; gap: 16px; margin: 10px 0 16px; align-items: center; }
+    .checkbox-group input { width: auto; margin: 0; }
+  </style>
+</head>
+<body>
+  <!-- MÀN HÌNH ĐĂNG NHẬP -->
+  <div id="login-view" class="card login-box">
+    <h2 style="margin-top:0;">Đăng nhập IoT Gateway</h2>
+    <p style="color:var(--muted); font-size:14px;">Hệ thống giám sát & điều khiển Smart Home Đồ án 2</p>
+    <div id="login-error" style="color:#f87171; font-size:14px; margin-bottom:10px;"></div>
+    <label>Tên đăng nhập</label>
+    <input type="text" id="login-user" placeholder="VD: admin" value="admin">
+    <label>Mật khẩu</label>
+    <input type="password" id="login-pass" placeholder="••••••" value="123456">
+    <button style="width:100%;" onclick="handleLogin()">Đăng nhập hệ thống</button>
+  </div>
+
+  <!-- MÀN HÌNH DASHBOARD CHÍNH -->
+  <div id="app-view" class="container hidden">
+    <header>
+      <div>
+        <h1 style="margin:0; font-size:20px;">Smart Home & Industrial IoT Gateway</h1>
+        <div style="color:var(--muted); font-size:13px; margin-top:4px;">
+          Xin chào, <strong id="user-display" style="color:white;"></strong> 
+          <span id="role-badge" class="badge"></span>
+        </div>
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="success" onclick="simulateESP32()">⚡ Giả lập gói tin ESP32</button>
+        <button class="outline" onclick="exportCSV()">📥 Xuất Excel (CSV)</button>
+        <button class="danger" onclick="logout()">Đăng xuất</button>
+      </div>
+    </header>
+
+    <div id="gas-alert" class="alert-banner hidden">
+      ⚠️ CẢNH BÁO AN TOÀN: Nồng độ khí Gas vượt ngưỡng cho phép! Hệ thống đã kích hoạt cảnh báo.
+    </div>
+
+    <!-- THANH ĐIỀU HƯỚNG TAB -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('tab-monitor', this)">📊 Giám sát & Điều khiển</button>
+      <button class="tab-btn" onclick="switchTab('tab-auto', this)">⚙️ Tự động hóa & Nhật ký</button>
+      <button id="nav-users" class="tab-btn hidden" onclick="switchTab('tab-users', this)">👥 Quản lý User & Phân quyền</button>
+    </div>
+
+    <!-- TAB 1: GIÁM SÁT & ĐIỀU KHIỂN -->
+    <div id="tab-monitor">
+      <div class="grid-3">
+        <div class="card">
+          <div style="color:var(--muted); font-size:13px;">NHIỆT ĐỘ PHÒNG</div>
+          <div class="metric-val" id="val-temp">-- °C</div>
+        </div>
+        <div class="card">
+          <div style="color:var(--muted); font-size:13px;">ĐỘ ẨM KHÔNG KHÍ</div>
+          <div class="metric-val" id="val-hum" style="color:#34d399;">-- %</div>
+        </div>
+        <div class="card">
+          <div style="color:var(--muted); font-size:13px;">KHÍ GAS (MQ-2)</div>
+          <div class="metric-val" id="val-gas" style="color:#fbbf24;">-- ppm</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3 style="margin-top:0;">Bảng điều khiển thiết bị (Relay)</h3>
+          <div id="relay-container">Đang tải thiết bị...</div>
+        </div>
+        <div class="card">
+          <h3 style="margin-top:0;">Biểu đồ biến thiên thời gian thực</h3>
+          <canvas id="mainChart" height="150"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: TỰ ĐỘNG HÓA & NHẬT KÝ -->
+    <div id="tab-auto" class="hidden">
+      <div class="grid-2">
+        <div class="card">
+          <h3 style="margin-top:0;">Cấu hình ngưỡng cảnh báo & Auto-Trigger</h3>
+          <label>Ngưỡng khí Gas kích hoạt cảnh báo (ppm)</label>
+          <input type="number" id="cfg-gas" value="600">
+          <label>Ngưỡng nhiệt độ cảnh báo (°C)</label>
+          <input type="number" id="cfg-temp" step="0.5" value="38.0">
+          <div class="checkbox-group">
+            <input type="checkbox" id="cfg-auto-fan" checked>
+            <label for="cfg-auto-fan" style="margin:0;">Tự động BẬT <strong>Quạt thông gió (Kênh 2)</strong> khi Gas vượt ngưỡng</label>
+          </div>
+          <button id="btn-save-cfg" onclick="saveSettings()">Lưu cấu hình tự động hóa</button>
+        </div>
+
+        <div class="card">
+          <h3 style="margin-top:0;">Nhật ký hoạt động gần nhất (Audit Log)</h3>
+          <div style="max-height:280px; overflow-y:auto;">
+            <table>
+              <thead><tr><th>Thời gian</th><th>Tài khoản</th><th>Hành động</th></tr></thead>
+              <tbody id="logs-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: QUẢN LÝ NGƯỜI DÙNG & PHÂN QUYỀN (CHỈ ADMIN) -->
+    <div id="tab-users" class="hidden">
+      <div class="card">
+        <h3 style="margin-top:0;">Tạo tài khoản người dùng mới & Cấp quyền</h3>
+        <div class="grid-3">
+          <div>
+            <label>Tên đăng nhập</label>
+            <input type="text" id="new-username" placeholder="VD: thanhvien1">
+          </div>
+          <div>
+            <label>Mật khẩu</label>
+            <input type="password" id="new-password" placeholder="Nhập mật khẩu">
+          </div>
+          <div>
+            <label>Họ và tên hiển thị</label>
+            <input type="text" id="new-fullname" placeholder="VD: Nguyễn Văn A">
+          </div>
+        </div>
+        <div class="grid-2" style="align-items:center;">
+          <div>
+            <label>Vai trò hệ thống</label>
+            <select id="new-role" onchange="onRoleSelectChange()">
+              <option value="operator">Người vận hành (Operator - Điều khiển theo quyền)</option>
+              <option value="viewer">Khách / Giảng viên (Viewer - Chỉ xem dữ liệu)</option>
+              <option value="admin">Quản trị viên (Admin - Toàn quyền)</option>
+            </select>
+          </div>
+          <div class="checkbox-group" style="padding-top:16px;">
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+              <input type="checkbox" id="perm-r1" checked> Quyền Đèn phòng khách (K1)
+            </label>
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+              <input type="checkbox" id="perm-r2"> Quyền Quạt thông gió (K2)
+            </label>
+          </div>
+        </div>
+        <button onclick="createUser()">+ Tạo người dùng & Cấp quyền</button>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-top:0;">Danh sách tài khoản & Phân quyền chi tiết</h3>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Tài khoản</th>
+                <th>Họ tên</th>
+                <th>Vai trò</th>
+                <th>Đèn phòng khách (K1)</th>
+                <th>Quạt thông gió (K2)</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="users-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let token = localStorage.getItem('iot_token');
+    let currentUser = null;
+    let sysSettings = { gas_threshold: 600, temp_threshold: 38, auto_ventilation: true };
+    let chartInstance = null;
+    let pollTimer = null;
+
+    async function apiFetch(url, options = {}) {
+      options.headers = {
+        ...options.headers,
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      };
+      const res = await fetch(url, options);
+      if (res.status === 401) { logout(); throw new Error('Unauthorized'); }
+      return res;
+    }
+
+    async function handleLogin() {
+      const username = document.getElementById('login-user').value.trim();
+      const password = document.getElementById('login-pass').value;
+      const errEl = document.getElementById('login-error');
+      errEl.innerText = '';
+
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        errEl.innerText = data.error || 'Đăng nhập thất bại';
+        return;
+      }
+      token = data.token;
+      localStorage.setItem('iot_token', token);
+      initApp();
+    }
+
+    function logout() {
+      localStorage.removeItem('iot_token');
+      token = null;
+      clearInterval(pollTimer);
+      document.getElementById('app-view').classList.add('hidden');
+      document.getElementById('login-view').classList.remove('hidden');
+    }
+
+    async function initApp() {
+      if (!token) return;
+      try {
+        const res = await apiFetch('/api/me');
+        currentUser = await res.json();
+        document.getElementById('login-view').classList.add('hidden');
+        document.getElementById('app-view').classList.remove('hidden');
+
+        document.getElementById('user-display').innerText = `${currentUser.full_name} (@${currentUser.username})`;
+        const badge = document.getElementById('role-badge');
+        badge.innerText = currentUser.role.toUpperCase();
+        badge.className = `badge ${currentUser.role}`;
+
+        if (currentUser.role === 'admin') {
+          document.getElementById('nav-users').classList.remove('hidden');
+          loadUsers();
+        } else {
+          document.getElementById('nav-users').classList.add('hidden');
+          document.getElementById('btn-save-cfg').disabled = true;
+        }
+
+        await loadSettings();
+        await refreshData();
+        pollTimer = setInterval(refreshData, 4000);
+      } catch (e) {
+        logout();
+      }
+    }
+
+    function switchTab(tabId, btnEl) {
+      ['tab-monitor', 'tab-auto', 'tab-users'].forEach(id => document.getElementById(id).classList.add('hidden'));
+      document.getElementById(tabId).classList.remove('hidden');
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btnEl.classList.add('active');
+    }
+
+    async function loadSettings() {
+      const res = await apiFetch('/api/settings');
+      sysSettings = await res.json();
+      document.getElementById('cfg-gas').value = sysSettings.gas_threshold;
+      document.getElementById('cfg-temp').value = sysSettings.temp_threshold;
+      document.getElementById('cfg-auto-fan').checked = sysSettings.auto_ventilation;
+    }
+
+    async function saveSettings() {
+      const payload = {
+        gas_threshold: parseInt(document.getElementById('cfg-gas').value, 10),
+        temp_threshold: parseFloat(document.getElementById('cfg-temp').value),
+        auto_ventilation: document.getElementById('cfg-auto-fan').checked
+      };
+      const res = await apiFetch('/api/settings', { method: 'POST', body: JSON.stringify(payload) });
+      if (res.ok) {
+        sysSettings = await res.json();
+        alert('Đã lưu cấu hình tự động hóa!');
+        refreshData();
+      }
+    }
+
+    async function refreshData() {
+      // 1. Cảm biến
+      const sRes = await apiFetch('/api/sensors/latest');
+      const sensors = await sRes.json();
+      if (sensors.length > 0) {
+        const last = sensors[sensors.length - 1];
+        document.getElementById('val-temp').innerText = last.temperature.toFixed(1) + ' °C';
+        document.getElementById('val-hum').innerText = last.humidity.toFixed(1) + ' %';
+        document.getElementById('val-gas').innerText = last.gas_value + ' ppm';
+
+        const alertBox = document.getElementById('gas-alert');
+        if (last.gas_value >= sysSettings.gas_threshold) {
+          alertBox.classList.remove('hidden');
+        } else {
+          alertBox.classList.add('hidden');
+        }
+        renderChart(sensors);
+      }
+
+      // 2. Relays & Kiểm tra quyền từng kênh
+      const rRes = await fetch('/api/relays');
+      const relays = await rRes.json();
+      const container = document.getElementById('relay-container');
+      container.innerHTML = relays.map(r => {
+        const hasPerm = currentUser.role === 'admin' || 
+                        (currentUser.role === 'operator' && ((r.relay_id === 1 && currentUser.can_relay_1) || (r.relay_id === 2 && currentUser.can_relay_2)));
+        return `
+          <div class="relay-item">
+            <div>
+              <strong>${r.relay_name}</strong> <span class="badge">Kênh ${r.relay_id}</span>
+              <div style="font-size:12px; color:var(--muted); margin-top:4px;">
+                ${hasPerm ? '✅ Bạn có quyền điều khiển' : '🔒 Không có quyền điều khiển'}
+              </div>
+            </div>
+            <button class="${r.state ? 'success' : 'outline'}" ${hasPerm ? '' : 'disabled'}
+              onclick="toggleRelay(${r.relay_id}, ${!r.state})">
+              ${r.state ? 'ĐANG BẬT (ON)' : 'ĐANG TẮT (OFF)'}
+            </button>
+          </div>
+        `;
+      }).join('');
+
+      // 3. Audit Logs
+      const lRes = await apiFetch('/api/logs');
+      const logs = await lRes.json();
+      document.getElementById('logs-tbody').innerHTML = logs.map(l => `
+        <tr>
+          <td style="color:var(--muted);">${new Date(l.created_at).toLocaleTimeString('vi-VN')}</td>
+          <td><strong>${l.username}</strong></td>
+          <td>${l.action_desc}</td>
+        </tr>
+      `).join('');
+    }
+
+    async function toggleRelay(id, newState) {
+      const res = await apiFetch(`/api/relays/${id}`, {
+        method: 'POST',
+        body: JSON.stringify({ state: newState })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        alert(err.error);
+      }
+      refreshData();
+    }
+
+    async function simulateESP32() {
+      const payload = {
+        temperature: +(27 + Math.random() * 12).toFixed(1),
+        humidity: +(55 + Math.random() * 25).toFixed(1),
+        gas_value: Math.floor(200 + Math.random() * 550) // Có xác suất vượt ngưỡng 600 để test Auto-Fan
+      };
+      await fetch('/api/sensors', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      refreshData();
+    }
+
+    async function exportCSV() {
+      const res = await apiFetch('/api/sensors/export');
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'baocao_cambien_iot.csv';
+      a.click();
+    }
+
+    // Quản lý User (Admin)
+    function onRoleSelectChange() {
+      const role = document.getElementById('new-role').value;
+      const r1 = document.getElementById('perm-r1');
+      const r2 = document.getElementById('perm-r2');
+      if (role === 'admin') { r1.checked = true; r2.checked = true; }
+      if (role === 'viewer') { r1.checked = false; r2.checked = false; }
+    }
+
+    async function createUser() {
+      const payload = {
+        username: document.getElementById('new-username').value.trim(),
+        password: document.getElementById('new-password').value,
+        full_name: document.getElementById('new-fullname').value.trim(),
+        role: document.getElementById('new-role').value,
+        can_relay_1: document.getElementById('perm-r1').checked,
+        can_relay_2: document.getElementById('perm-r2').checked
+      };
+      if (!payload.username || !payload.password || !payload.full_name) {
+        alert('Vui lòng điền đầy đủ thông tin tài khoản!');
+        return;
+      }
+      const res = await apiFetch('/api/users', { method: 'POST', body: JSON.stringify(payload) });
+      if (res.ok) {
+        document.getElementById('new-username').value = '';
+        document.getElementById('new-password').value = '';
+        document.getElementById('new-fullname').value = '';
+        loadUsers();
+        refreshData();
+      } else {
+        const err = await res.json();
+        alert(err.error);
+      }
+    }
+
+    async function loadUsers() {
+      const res = await apiFetch('/api/users');
+      const users = await res.json();
+      document.getElementById('users-tbody').innerHTML = users.map(u => `
+        <tr>
+          <td><strong>${u.username}</strong></td>
+          <td>${u.full_name}</td>
+          <td>
+            <select style="margin:0; padding:6px;" onchange="updateUserPerm(${u.id}, this.value, ${u.can_relay_1}, ${u.can_relay_2})" ${u.username === 'admin' ? 'disabled' : ''}>
+              <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
+              <option value="operator" ${u.role === 'operator' ? 'selected' : ''}>Operator</option>
+              <option value="viewer" ${u.role === 'viewer' ? 'selected' : ''}>Viewer</option>
+            </select>
+          </td>
+          <td><input type="checkbox" ${u.can_relay_1 ? 'checked' : ''} ${u.username === 'admin' ? 'disabled' : ''} onchange="updateUserPerm(${u.id}, '${u.role}', this.checked, ${u.can_relay_2})"></td>
+          <td><input type="checkbox" ${u.can_relay_2 ? 'checked' : ''} ${u.username === 'admin' ? 'disabled' : ''} onchange="updateUserPerm(${u.id}, '${u.role}', ${u.can_relay_1}, this.checked)"></td>
+          <td>
+            ${u.username !== 'admin' ? `<button class="danger" style="padding:6px 10px; font-size:12px;" onclick="deleteUser(${u.id})">Xóa</button>` : '<span style="color:var(--muted); font-size:12px;">Mặc định</span>'}
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function updateUserPerm(id, role, r1, r2) {
+      await apiFetch(`/api/users/${id}/permissions`, {
+        method: 'PUT',
+        body: JSON.stringify({ role, can_relay_1: r1, can_relay_2: r2 })
+      });
+      loadUsers();
+    }
+
+    async function deleteUser(id) {
+      if (!confirm('Bạn chắc chắn muốn xóa tài khoản này?')) return;
+      await apiFetch(`/api/users/${id}`, { method: 'DELETE' });
+      loadUsers();
+    }
+
+    function renderChart(data) {
+      const labels = data.map(d => new Date(d.created_at).toLocaleTimeString('vi-VN'));
+      if (chartInstance) chartInstance.destroy();
+      chartInstance = new Chart(document.getElementById('mainChart'), {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            { label: 'Nhiệt độ (°C)', data: data.map(d => d.temperature), borderColor: '#38bdf8', tension: 0.3 },
+            { label: 'Độ ẩm (%)', data: data.map(d => d.humidity), borderColor: '#34d399', tension: 0.3 }
+          ]
+        },
+        options: { responsive: true, animation: false, scales: { y: { grid: { color: '#334155' } }, x: { grid: { color: '#334155' } } } }
+      });
+    }
+
+    if (token) initApp();
+  </script>
+</body>
+</html>
