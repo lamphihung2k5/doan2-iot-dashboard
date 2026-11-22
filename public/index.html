@@ -3,145 +3,386 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>IoT Gateway Dashboard - Đồ Án 2</title>
+  <title>Smart Home - Hệ thống điều khiển nhà thông minh</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    :root { --bg: #0f172a; --card: #1e293b; --border: #334155; --text: #f8fafc; --muted: #94a3b8; --primary: #2563eb; --danger: #dc2626; --success: #059669; }
-    * { box-sizing: border-box; }
-    body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 16px; }
-    .container { max-width: 1050px; margin: auto; }
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+    :root {
+      --bg: #f4f6f9;
+      --surface: #ffffff;
+      --surface-soft: #f8fafc;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --muted: #64748b;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+      --input-bg: #ffffff;
+      --chart-grid: #e2e8f0;
+    }
+
+    [data-theme="dark"] {
+      --bg: #0b1120;
+      --surface: #131c31;
+      --surface-soft: #1a253c;
+      --border: #26334d;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --success: #10b981;
+      --warning: #fbbf24;
+      --danger: #f87171;
+      --shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+      --input-bg: #0f172a;
+      --chart-grid: #26334d;
+    }
+
+    * { box-sizing: border-box; transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 20px;
+      line-height: 1.5;
+    }
+    .container { max-width: 1120px; margin: 0 auto; }
     .hidden { display: none !important; }
-    
-    /* Login Screen */
-    .login-box { max-width: 400px; margin: 80px auto; }
-    input, select { width: 100%; padding: 10px 12px; margin: 8px 0 14px; background: #0f172a; border: 1px solid var(--border); color: white; border-radius: 8px; }
-    button { background: var(--primary); color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s; }
-    button:hover { opacity: 0.9; }
-    button:disabled { background: #475569; cursor: not-allowed; opacity: 0.6; }
-    button.danger { background: var(--danger); }
-    button.success { background: var(--success); }
-    button.outline { background: transparent; border: 1px solid var(--border); }
 
-    /* Header & Tabs */
-    header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 20px; }
-    .tabs { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
-    .tab-btn { background: var(--card); border: 1px solid var(--border); color: var(--muted); }
-    .tab-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 22px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow);
+    }
 
-    /* Grid & Metrics */
-    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
-    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
-    .metric-val { font-size: 34px; font-weight: 700; color: #38bdf8; margin-top: 8px; }
-    .alert-banner { background: rgba(220, 38, 38, 0.2); border: 1px solid var(--danger); color: #fca5a5; padding: 14px; border-radius: 10px; margin-bottom: 16px; font-weight: 600; animation: pulse 1.5s infinite; }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+    /* Login */
+    .login-box { max-width: 410px; margin: 70px auto; padding: 32px; }
+    .login-logo {
+      width: 48px; height: 48px; border-radius: 14px;
+      background: linear-gradient(135deg, #2563eb, #38bdf8);
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-size: 24px; margin-bottom: 16px;
+    }
 
-    /* Relay Controls */
-    .relay-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--border); }
-    .relay-item:last-child { border-bottom: none; }
-    .badge { padding: 3px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; background: #334155; }
-    .badge.admin { background: #7c3aed; }
-    .badge.operator { background: #0284c7; }
+    /* Form elements */
+    label { display: block; font-size: 13px; font-weight: 500; color: var(--muted); margin-bottom: 6px; }
+    input, select {
+      width: 100%;
+      padding: 10px 14px;
+      margin-bottom: 14px;
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 10px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+    input:focus, select:focus { outline: none; border-color: var(--primary); }
 
-    /* Table */
-    table { width: 100%; border-collapse: collapse; font-size: 14px; }
-    th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--border); }
-    th { color: var(--muted); }
-    .checkbox-group { display: flex; gap: 16px; margin: 10px 0 16px; align-items: center; }
+    button {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 13.5px;
+      font-family: inherit;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    button:hover { background: var(--primary-hover); }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    button.success { background: var(--success); color: #fff; }
+    button.success:hover { filter: brightness(0.95); }
+    button.danger { background: var(--danger); color: #fff; }
+    button.danger:hover { filter: brightness(0.95); }
+    button.ghost {
+      background: var(--surface-soft);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    button.ghost:hover { border-color: var(--primary); color: var(--primary); }
+    button.icon-btn {
+      padding: 6px 8px;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid transparent;
+    }
+    button.icon-btn:hover { background: var(--surface-soft); color: var(--text); border-color: var(--border); }
+
+    /* Header */
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-icon {
+      width: 42px; height: 42px; border-radius: 12px;
+      background: linear-gradient(135deg, #2563eb, #0ea5e9);
+      color: white; display: flex; align-items: center; justify-content: center;
+      font-size: 20px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+    }
+    .header-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+    /* Tabs */
+    .tabs {
+      display: inline-flex;
+      background: var(--surface);
+      padding: 5px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      margin-bottom: 20px;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    .tab-btn {
+      background: transparent;
+      color: var(--muted);
+      border-radius: 9px;
+      padding: 8px 16px;
+    }
+    .tab-btn:hover { background: var(--surface-soft); color: var(--text); }
+    .tab-btn.active { background: var(--primary); color: white; }
+
+    /* Alert Banner */
+    .alert-banner {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid var(--danger);
+      color: var(--danger);
+      padding: 14px 18px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: pulseAlert 1.8s infinite;
+    }
+    @keyframes pulseAlert { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+
+    /* Grids & Sensor Cards */
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 18px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 18px; }
+
+    .sensor-card { position: relative; overflow: hidden; }
+    .sensor-card.alarm {
+      border-color: var(--danger);
+      background: linear-gradient(to bottom right, var(--surface), rgba(239, 68, 68, 0.08));
+    }
+    .sensor-top { display: flex; justify-content: space-between; align-items: center; }
+    .sensor-label { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
+    .sensor-tag {
+      font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 20px;
+      background: var(--surface-soft); color: var(--muted); border: 1px solid var(--border);
+    }
+    .sensor-card.alarm .sensor-tag { background: var(--danger); color: white; border-color: var(--danger); }
+    .metric-val { font-size: 36px; font-weight: 700; margin: 12px 0 6px; letter-spacing: -0.5px; }
+    .sensor-sub { font-size: 12.5px; color: var(--muted); }
+
+    /* Relay Cards */
+    .relay-list { display: flex; flex-direction: column; gap: 12px; }
+    .relay-card {
+      background: var(--surface-soft);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .relay-card.is-on { border-color: rgba(16, 185, 129, 0.45); }
+    .relay-info { display: flex; align-items: center; gap: 12px; flex: 1; }
+    .relay-icon {
+      width: 42px; height: 42px; border-radius: 12px;
+      background: var(--surface); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center; font-size: 20px;
+    }
+    .relay-card.is-on .relay-icon { background: rgba(16, 185, 129, 0.15); border-color: var(--success); }
+    .relay-title-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .relay-name { font-weight: 600; font-size: 15px; }
+    .channel-pill {
+      font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 6px;
+      background: var(--surface); color: var(--muted); border: 1px solid var(--border);
+    }
+
+    /* Toggle Switch */
+    .switch { position: relative; display: inline-block; width: 52px; height: 28px; flex-shrink: 0; }
+    .switch input { opacity: 0; width: 0; height: 0; margin: 0; }
+    .slider {
+      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #cbd5e1; transition: .25s; border-radius: 34px;
+    }
+    [data-theme="dark"] .slider { background-color: #334155; }
+    .slider:before {
+      position: absolute; content: ""; height: 22px; width: 22px; left: 3px; bottom: 3px;
+      background-color: white; transition: .25s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    input:checked + .slider { background-color: var(--success); }
+    input:checked + .slider:before { transform: translateX(24px); }
+    input:disabled + .slider { opacity: 0.4; cursor: not-allowed; }
+
+    /* Table & Badges */
+    .badge { padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; background: var(--surface-soft); border: 1px solid var(--border); }
+    .badge.admin { background: rgba(124, 58, 237, 0.15); color: #8b5cf6; border-color: rgba(139, 92, 246, 0.3); }
+    .badge.operator { background: rgba(2, 132, 199, 0.15); color: #0ea5e9; border-color: rgba(14, 165, 233, 0.3); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    th, td { text-align: left; padding: 11px 10px; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; }
+    .checkbox-group { display: flex; gap: 14px; margin: 8px 0 16px; align-items: center; }
     .checkbox-group input { width: auto; margin: 0; }
   </style>
 </head>
 <body>
   <!-- MÀN HÌNH ĐĂNG NHẬP -->
   <div id="login-view" class="card login-box">
-    <h2 style="margin-top:0;">Đăng nhập IoT Gateway</h2>
-    <p style="color:var(--muted); font-size:14px;">Hệ thống giám sát & điều khiển Smart Home Đồ án 2</p>
-    <div id="login-error" style="color:#f87171; font-size:14px; margin-bottom:10px;"></div>
+    <div class="login-logo">🏠</div>
+    <h2 style="margin:0 0 4px;">Smart Home</h2>
+    <p style="color:var(--muted); font-size:14px; margin:0 0 20px;">Đăng nhập để giám sát và điều khiển thiết bị trong nhà</p>
+    <div id="login-error" style="color:var(--danger); font-size:13.5px; margin-bottom:12px;"></div>
     <label>Tên đăng nhập</label>
     <input type="text" id="login-user" placeholder="VD: admin" value="admin">
     <label>Mật khẩu</label>
     <input type="password" id="login-pass" placeholder="••••••" value="123456">
-    <button style="width:100%;" onclick="handleLogin()">Đăng nhập hệ thống</button>
+    <button style="width:100%; padding:12px;" onclick="handleLogin()">Đăng nhập vào nhà</button>
   </div>
 
   <!-- MÀN HÌNH DASHBOARD CHÍNH -->
   <div id="app-view" class="container hidden">
     <header>
-      <div>
-        <h1 style="margin:0; font-size:20px;">Smart Home & Industrial IoT Gateway</h1>
-        <div style="color:var(--muted); font-size:13px; margin-top:4px;">
-          Xin chào, <strong id="user-display" style="color:white;"></strong> 
-          <span id="role-badge" class="badge"></span>
+      <div class="brand">
+        <div class="brand-icon">🏠</div>
+        <div>
+          <h1 style="margin:0; font-size:21px; font-weight:700;">Smart Home</h1>
+          <div style="color:var(--muted); font-size:13px;">
+            Xin chào, <strong id="user-display" style="color:var(--text);"></strong>
+            <span id="role-badge" class="badge" style="margin-left:4px;"></span>
+          </div>
         </div>
       </div>
-      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+
+      <div class="header-actions">
+        <button class="ghost" id="theme-toggle" onclick="toggleTheme()" title="Chuyển giao diện Sáng / Tối">🌙 Chế độ tối</button>
         <button class="success" onclick="simulateESP32()">⚡ Giả lập gói tin ESP32</button>
-        <button class="outline" onclick="exportCSV()">📥 Xuất Excel (CSV)</button>
+        <button class="ghost" onclick="exportCSV()">📥 Xuất CSV</button>
         <button class="danger" onclick="logout()">Đăng xuất</button>
       </div>
     </header>
 
-    <div id="gas-alert" class="alert-banner hidden">
-      ⚠️ CẢNH BÁO AN TOÀN: Nồng độ khí Gas vượt ngưỡng cho phép! Hệ thống đã kích hoạt cảnh báo.
+    <div id="global-alert" class="alert-banner hidden">
+      <span>🚨</span>
+      <span id="global-alert-text">Cảnh báo: Có thông số cảm biến vượt ngưỡng an toàn!</span>
     </div>
 
     <!-- THANH ĐIỀU HƯỚNG TAB -->
     <div class="tabs">
-      <button class="tab-btn active" onclick="switchTab('tab-monitor', this)">📊 Giám sát & Điều khiển</button>
-      <button class="tab-btn" onclick="switchTab('tab-auto', this)">⚙️ Tự động hóa & Nhật ký</button>
-      <button id="nav-users" class="tab-btn hidden" onclick="switchTab('tab-users', this)">👥 Quản lý User & Phân quyền</button>
+      <button class="tab-btn active" onclick="switchTab('tab-monitor', this)">🏡 Không gian & Thiết bị</button>
+      <button class="tab-btn" onclick="switchTab('tab-auto', this)">🔔 Ngưỡng báo động & Nhật ký</button>
+      <button id="nav-users" class="tab-btn hidden" onclick="switchTab('tab-users', this)">👥 Thành viên & Phân quyền</button>
     </div>
 
     <!-- TAB 1: GIÁM SÁT & ĐIỀU KHIỂN -->
     <div id="tab-monitor">
       <div class="grid-3">
-        <div class="card">
-          <div style="color:var(--muted); font-size:13px;">NHIỆT ĐỘ PHÒNG</div>
-          <div class="metric-val" id="val-temp">-- °C</div>
+        <div class="card sensor-card" id="card-temp">
+          <div class="sensor-top">
+            <span class="sensor-label">🌡️ Nhiệt độ phòng</span>
+            <span class="sensor-tag" id="tag-temp">Bình thường</span>
+          </div>
+          <div class="metric-val" id="val-temp" style="color:#0ea5e9;">-- °C</div>
+          <div class="sensor-sub" id="sub-temp">Ngưỡng báo động: 38.0 °C</div>
         </div>
-        <div class="card">
-          <div style="color:var(--muted); font-size:13px;">ĐỘ ẨM KHÔNG KHÍ</div>
-          <div class="metric-val" id="val-hum" style="color:#34d399;">-- %</div>
+
+        <div class="card sensor-card" id="card-hum">
+          <div class="sensor-top">
+            <span class="sensor-label">💧 Độ ẩm không khí</span>
+            <span class="sensor-tag" id="tag-hum">Bình thường</span>
+          </div>
+          <div class="metric-val" id="val-hum" style="color:#10b981;">-- %</div>
+          <div class="sensor-sub" id="sub-hum">Ngưỡng báo động: 85 %</div>
         </div>
-        <div class="card">
-          <div style="color:var(--muted); font-size:13px;">KHÍ GAS (MQ-2)</div>
-          <div class="metric-val" id="val-gas" style="color:#fbbf24;">-- ppm</div>
+
+        <div class="card sensor-card" id="card-gas">
+          <div class="sensor-top">
+            <span class="sensor-label">🔥 Cảm biến khí Gas</span>
+            <span class="sensor-tag" id="tag-gas">An toàn</span>
+          </div>
+          <div class="metric-val" id="val-gas" style="color:#f59e0b;">-- ppm</div>
+          <div class="sensor-sub" id="sub-gas">Ngưỡng báo động: 600 ppm</div>
         </div>
       </div>
 
       <div class="grid-2">
+        <!-- BẢNG ĐIỀU KHIỂN TỐI ĐA 2 RELAY -->
         <div class="card">
-          <h3 style="margin-top:0;">Bảng điều khiển thiết bị (Relay)</h3>
-          <div id="relay-container">Đang tải thiết bị...</div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <div>
+              <h3 style="margin:0; font-size:17px;">Thiết bị điều khiển (Tối đa 2 kênh)</h3>
+              <div style="font-size:12.5px; color:var(--muted);">Bấm biểu tượng bút để đổi tên hoặc thêm/xóa thiết bị</div>
+            </div>
+            <button id="btn-add-device" class="ghost" style="padding:7px 12px; font-size:12.5px;" onclick="addRelayDevice()">
+              + Thêm thiết bị
+            </button>
+          </div>
+          <div id="relay-container" class="relay-list">Đang tải thiết bị...</div>
         </div>
+
+        <!-- BIỂU ĐỒ THỜI GIAN THỰC -->
         <div class="card">
-          <h3 style="margin-top:0;">Biểu đồ biến thiên thời gian thực</h3>
-          <canvas id="mainChart" height="150"></canvas>
+          <h3 style="margin:0 0 14px; font-size:17px;">Biểu đồ môi trường theo thời gian thực</h3>
+          <canvas id="mainChart" height="175"></canvas>
         </div>
       </div>
     </div>
 
-    <!-- TAB 2: TỰ ĐỘNG HÓA & NHẬT KÝ -->
+    <!-- TAB 2: CÀI ĐẶT NGƯỠNG BÁO ĐỘNG & NHẬT KÝ -->
     <div id="tab-auto" class="hidden">
       <div class="grid-2">
         <div class="card">
-          <h3 style="margin-top:0;">Cấu hình ngưỡng cảnh báo & Auto-Trigger</h3>
-          <label>Ngưỡng khí Gas kích hoạt cảnh báo (ppm)</label>
+          <h3 style="margin-top:0;">Cài đặt ngưỡng báo động cảm biến</h3>
+          <p style="font-size:13px; color:var(--muted); margin-top:-6px; margin-bottom:16px;">
+            Hệ thống sẽ phát cảnh báo trực quan ngay khi thông số vượt mức cài đặt bên dưới.
+          </p>
+
+          <label>Ngưỡng báo động Khí Gas (ppm)</label>
           <input type="number" id="cfg-gas" value="600">
-          <label>Ngưỡng nhiệt độ cảnh báo (°C)</label>
+
+          <label>Ngưỡng báo động Nhiệt độ (°C)</label>
           <input type="number" id="cfg-temp" step="0.5" value="38.0">
+
+          <label>Ngưỡng báo động Độ ẩm (%)</label>
+          <input type="number" id="cfg-hum" step="1" value="85">
+
           <div class="checkbox-group">
             <input type="checkbox" id="cfg-auto-fan" checked>
-            <label for="cfg-auto-fan" style="margin:0;">Tự động BẬT <strong>Quạt thông gió (Kênh 2)</strong> khi Gas vượt ngưỡng</label>
+            <label for="cfg-auto-fan" style="margin:0; color:var(--text);">Tự động BẬT <strong id="lbl-auto-dev">Relay Kênh 2</strong> khi khí Gas vượt ngưỡng</label>
           </div>
-          <button id="btn-save-cfg" onclick="saveSettings()">Lưu cấu hình tự động hóa</button>
+          <button id="btn-save-cfg" onclick="saveSettings()">💾 Lưu ngưỡng báo động</button>
         </div>
 
         <div class="card">
-          <h3 style="margin-top:0;">Nhật ký hoạt động gần nhất (Audit Log)</h3>
-          <div style="max-height:280px; overflow-y:auto;">
+          <h3 style="margin-top:0;">Nhật ký hoạt động gần đây</h3>
+          <div style="max-height:330px; overflow-y:auto;">
             <table>
-              <thead><tr><th>Thời gian</th><th>Tài khoản</th><th>Hành động</th></tr></thead>
+              <thead><tr><th>Thời gian</th><th>Người dùng</th><th>Hoạt động</th></tr></thead>
               <tbody id="logs-tbody"></tbody>
             </table>
           </div>
@@ -149,10 +390,10 @@
       </div>
     </div>
 
-    <!-- TAB 3: QUẢN LÝ NGƯỜI DÙNG & PHÂN QUYỀN (CHỈ ADMIN) -->
+    <!-- TAB 3: QUẢN LÝ THÀNH VIÊN (ADMIN) -->
     <div id="tab-users" class="hidden">
       <div class="card">
-        <h3 style="margin-top:0;">Tạo tài khoản người dùng mới & Cấp quyền</h3>
+        <h3 style="margin-top:0;">Thêm thành viên & Cấp quyền điều khiển</h3>
         <div class="grid-3">
           <div>
             <label>Tên đăng nhập</label>
@@ -163,33 +404,33 @@
             <input type="password" id="new-password" placeholder="Nhập mật khẩu">
           </div>
           <div>
-            <label>Họ và tên hiển thị</label>
+            <label>Tên hiển thị</label>
             <input type="text" id="new-fullname" placeholder="VD: Nguyễn Văn A">
           </div>
         </div>
         <div class="grid-2" style="align-items:center;">
           <div>
-            <label>Vai trò hệ thống</label>
+            <label>Vai trò</label>
             <select id="new-role" onchange="onRoleSelectChange()">
-              <option value="operator">Người vận hành (Operator - Điều khiển theo quyền)</option>
-              <option value="viewer">Khách / Giảng viên (Viewer - Chỉ xem dữ liệu)</option>
-              <option value="admin">Quản trị viên (Admin - Toàn quyền)</option>
+              <option value="operator">Thành viên (Điều khiển theo kênh được cấp)</option>
+              <option value="viewer">Khách (Chỉ xem thông số)</option>
+              <option value="admin">Chủ nhà / Admin (Toàn quyền)</option>
             </select>
           </div>
           <div class="checkbox-group" style="padding-top:16px;">
-            <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
-              <input type="checkbox" id="perm-r1" checked> Quyền Đèn phòng khách (K1)
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="perm-r1" checked> <span id="lbl-perm-r1">Quyền Kênh 1</span>
             </label>
-            <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
-              <input type="checkbox" id="perm-r2"> Quyền Quạt thông gió (K2)
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="perm-r2"> <span id="lbl-perm-r2">Quyền Kênh 2</span>
             </label>
           </div>
         </div>
-        <button onclick="createUser()">+ Tạo người dùng & Cấp quyền</button>
+        <button onclick="createUser()">+ Thêm thành viên</button>
       </div>
 
       <div class="card">
-        <h3 style="margin-top:0;">Danh sách tài khoản & Phân quyền chi tiết</h3>
+        <h3 style="margin-top:0;">Danh sách thành viên</h3>
         <div style="overflow-x:auto;">
           <table>
             <thead>
@@ -197,8 +438,8 @@
                 <th>Tài khoản</th>
                 <th>Họ tên</th>
                 <th>Vai trò</th>
-                <th>Đèn phòng khách (K1)</th>
-                <th>Quạt thông gió (K2)</th>
+                <th id="th-r1">Kênh 1</th>
+                <th id="th-r2">Kênh 2</th>
                 <th>Thao tác</th>
               </tr>
             </thead>
@@ -212,9 +453,39 @@
   <script>
     let token = localStorage.getItem('iot_token');
     let currentUser = null;
-    let sysSettings = { gas_threshold: 600, temp_threshold: 38, auto_ventilation: true };
+    let sysSettings = {
+      gas_threshold: 600,
+      temp_threshold: 38.0,
+      hum_threshold: parseFloat(localStorage.getItem('smarthome_hum_threshold')) || 85
+    };
     let chartInstance = null;
     let pollTimer = null;
+    let lastSensorList = [];
+
+    // Quản lý trạng thái hiển thị (ẩn/hiện) tối đa 2 kênh Relay
+    let visibleChannels = JSON.parse(localStorage.getItem('smarthome_visible_channels')) || [1, 2];
+
+    function saveVisibleChannels() {
+      localStorage.setItem('smarthome_visible_channels', JSON.stringify(visibleChannels));
+    }
+
+    // Chuyển đổi Sáng / Tối
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('smarthome_theme', theme);
+      const btn = document.getElementById('theme-toggle');
+      if (btn) {
+        btn.innerHTML = theme === 'dark' ? '☀️ Chế độ sáng' : '🌙 Chế độ tối';
+      }
+      if (lastSensorList.length > 0) renderChart(lastSensorList);
+    }
+
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme') || 'light';
+      applyTheme(current === 'dark' ? 'light' : 'dark');
+    }
+
+    applyTheme(localStorage.getItem('smarthome_theme') || 'light');
 
     async function apiFetch(url, options = {}) {
       options.headers = {
@@ -294,13 +565,29 @@
 
     async function loadSettings() {
       const res = await apiFetch('/api/settings');
-      sysSettings = await res.json();
+      const serverCfg = await res.json();
+      sysSettings.gas_threshold = serverCfg.gas_threshold ?? 600;
+      sysSettings.temp_threshold = serverCfg.temp_threshold ?? 38.0;
+      sysSettings.auto_ventilation = serverCfg.auto_ventilation ?? true;
+
       document.getElementById('cfg-gas').value = sysSettings.gas_threshold;
       document.getElementById('cfg-temp').value = sysSettings.temp_threshold;
+      document.getElementById('cfg-hum').value = sysSettings.hum_threshold;
       document.getElementById('cfg-auto-fan').checked = sysSettings.auto_ventilation;
+      updateThresholdLabels();
+    }
+
+    function updateThresholdLabels() {
+      document.getElementById('sub-temp').innerText = `Ngưỡng báo động: ${sysSettings.temp_threshold} °C`;
+      document.getElementById('sub-hum').innerText = `Ngưỡng báo động: ${sysSettings.hum_threshold} %`;
+      document.getElementById('sub-gas').innerText = `Ngưỡng báo động: ${sysSettings.gas_threshold} ppm`;
     }
 
     async function saveSettings() {
+      const humVal = parseFloat(document.getElementById('cfg-hum').value) || 85;
+      localStorage.setItem('smarthome_hum_threshold', humVal);
+      sysSettings.hum_threshold = humVal;
+
       const payload = {
         gas_threshold: parseInt(document.getElementById('cfg-gas').value, 10),
         temp_threshold: parseFloat(document.getElementById('cfg-temp').value),
@@ -308,55 +595,155 @@
       };
       const res = await apiFetch('/api/settings', { method: 'POST', body: JSON.stringify(payload) });
       if (res.ok) {
-        sysSettings = await res.json();
-        alert('Đã lưu cấu hình tự động hóa!');
+        const updated = await res.json();
+        sysSettings.gas_threshold = updated.gas_threshold;
+        sysSettings.temp_threshold = updated.temp_threshold;
+        sysSettings.auto_ventilation = updated.auto_ventilation;
+        updateThresholdLabels();
+        alert('Đã lưu cài đặt ngưỡng báo động!');
+        refreshData();
+      }
+    }
+
+    // Đổi tên thiết bị Relay & lưu xuống Supabase
+    async function renameRelayDevice(channel, currentName) {
+      const newName = prompt(`Nhập tên mới cho thiết bị trên Kênh ${channel}:`, currentName);
+      if (newName && newName.trim() && newName.trim() !== currentName) {
+        const res = await apiFetch(`/api/relays/${channel}/name`, {
+          method: 'PUT',
+          body: JSON.stringify({ relay_name: newName.trim() })
+        });
+        if (res.ok) refreshData();
+      }
+    }
+
+    function removeRelayDevice(channel, name) {
+      if (!confirm(`Gỡ "${name}" (Kênh ${channel}) khỏi bảng điều khiển?`)) return;
+      visibleChannels = visibleChannels.filter(c => c !== channel);
+      saveVisibleChannels();
+      refreshData();
+    }
+
+    async function addRelayDevice() {
+      const freeChannel = [1, 2].find(c => !visibleChannels.includes(c));
+      if (!freeChannel) {
+        alert('Bo mạch chỉ hỗ trợ tối đa 2 kênh Relay!');
+        return;
+      }
+      const name = prompt(`Nhập tên thiết bị mới cho Kênh ${freeChannel} (VD: Đèn ngủ, Máy bơm...):`);
+      if (name && name.trim()) {
+        await apiFetch(`/api/relays/${freeChannel}/name`, {
+          method: 'PUT',
+          body: JSON.stringify({ relay_name: name.trim() })
+        });
+        visibleChannels.push(freeChannel);
+        visibleChannels.sort();
+        saveVisibleChannels();
         refreshData();
       }
     }
 
     async function refreshData() {
-      // 1. Cảm biến
+      // 1. Cảm biến & Kiểm tra ngưỡng báo động
       const sRes = await apiFetch('/api/sensors/latest');
       const sensors = await sRes.json();
+      lastSensorList = sensors;
+
       if (sensors.length > 0) {
         const last = sensors[sensors.length - 1];
         document.getElementById('val-temp').innerText = last.temperature.toFixed(1) + ' °C';
         document.getElementById('val-hum').innerText = last.humidity.toFixed(1) + ' %';
         document.getElementById('val-gas').innerText = last.gas_value + ' ppm';
 
-        const alertBox = document.getElementById('gas-alert');
-        if (last.gas_value >= sysSettings.gas_threshold) {
+        const alarms = [];
+        const isTempHigh = last.temperature >= sysSettings.temp_threshold;
+        const isHumHigh = last.humidity >= sysSettings.hum_threshold;
+        const isGasHigh = last.gas_value >= sysSettings.gas_threshold;
+
+        document.getElementById('card-temp').classList.toggle('alarm', isTempHigh);
+        document.getElementById('tag-temp').innerText = isTempHigh ? 'Vượt ngưỡng!' : 'Bình thường';
+        if (isTempHigh) alarms.push(`Nhiệt độ cao (${last.temperature.toFixed(1)}°C)`);
+
+        document.getElementById('card-hum').classList.toggle('alarm', isHumHigh);
+        document.getElementById('tag-hum').innerText = isHumHigh ? 'Vượt ngưỡng!' : 'Bình thường';
+        if (isHumHigh) alarms.push(`Độ ẩm cao (${last.humidity.toFixed(1)}%)`);
+
+        document.getElementById('card-gas').classList.toggle('alarm', isGasHigh);
+        document.getElementById('tag-gas').innerText = isGasHigh ? 'NGUY HIỂM!' : 'An toàn';
+        if (isGasHigh) alarms.push(`Rò rỉ khí Gas (${last.gas_value} ppm)`);
+
+        const alertBox = document.getElementById('global-alert');
+        if (alarms.length > 0) {
+          document.getElementById('global-alert-text').innerText = 'CẢNH BÁO BÁO ĐỘNG: ' + alarms.join(' • ');
           alertBox.classList.remove('hidden');
         } else {
           alertBox.classList.add('hidden');
         }
+
         renderChart(sensors);
       }
 
-      // 2. Relays & Kiểm tra quyền từng kênh
+      // 2. Relays từ Database (tối đa 2 kênh)
       const rRes = await fetch('/api/relays');
       const relays = await rRes.json();
-      const container = document.getElementById('relay-container');
-      container.innerHTML = relays.map(r => {
-        const hasPerm = currentUser.role === 'admin' || 
-                        (currentUser.role === 'operator' && ((r.relay_id === 1 && currentUser.can_relay_1) || (r.relay_id === 2 && currentUser.can_relay_2)));
-        return `
-          <div class="relay-item">
-            <div>
-              <strong>${r.relay_name}</strong> <span class="badge">Kênh ${r.relay_id}</span>
-              <div style="font-size:12px; color:var(--muted); margin-top:4px;">
-                ${hasPerm ? '✅ Bạn có quyền điều khiển' : '🔒 Không có quyền điều khiển'}
-              </div>
-            </div>
-            <button class="${r.state ? 'success' : 'outline'}" ${hasPerm ? '' : 'disabled'}
-              onclick="toggleRelay(${r.relay_id}, ${!r.state})">
-              ${r.state ? 'ĐANG BẬT (ON)' : 'ĐANG TẮT (OFF)'}
-            </button>
-          </div>
-        `;
-      }).join('');
 
-      // 3. Audit Logs
+      // Cập nhật nhãn tên thiết bị đồng bộ ở các tab khác
+      const r1Obj = relays.find(r => r.relay_id === 1);
+      const r2Obj = relays.find(r => r.relay_id === 2);
+      if (r1Obj) {
+        document.getElementById('lbl-perm-r1').innerText = `Quyền ${r1Obj.relay_name} (K1)`;
+        document.getElementById('th-r1').innerText = `${r1Obj.relay_name} (K1)`;
+      }
+      if (r2Obj) {
+        document.getElementById('lbl-perm-r2').innerText = `Quyền ${r2Obj.relay_name} (K2)`;
+        document.getElementById('th-r2').innerText = `${r2Obj.relay_name} (K2)`;
+        document.getElementById('lbl-auto-dev').innerText = `${r2Obj.relay_name} (Kênh 2)`;
+      }
+
+      const activeRelays = relays.filter(r => visibleChannels.includes(r.relay_id));
+      const addBtn = document.getElementById('btn-add-device');
+      if (visibleChannels.length >= 2) {
+        addBtn.classList.add('hidden');
+      } else {
+        addBtn.classList.remove('hidden');
+      }
+
+      const container = document.getElementById('relay-container');
+      if (activeRelays.length === 0) {
+        container.innerHTML = `<div style="text-align:center; padding:24px; color:var(--muted); font-size:13.5px;">Chưa có thiết bị nào. Bấm <strong>+ Thêm thiết bị</strong> để gán vào Kênh 1 hoặc Kênh 2.</div>`;
+      } else {
+        container.innerHTML = activeRelays.map(r => {
+          const isOn = !!r.state;
+          const hasPerm = currentUser.role === 'admin' ||
+                          (currentUser.role === 'operator' && ((r.relay_id === 1 && currentUser.can_relay_1) || (r.relay_id === 2 && currentUser.can_relay_2)));
+
+          return `
+            <div class="relay-card ${isOn ? 'is-on' : ''}">
+              <div class="relay-info">
+                <div class="relay-icon">${r.relay_id === 1 ? '💡' : '🔌'}</div>
+                <div>
+                  <div class="relay-title-row">
+                    <span class="relay-name">${r.relay_name}</span>
+                    <span class="channel-pill">Kênh ${r.relay_id}</span>
+                    <button class="icon-btn" title="Đổi tên thiết bị" onclick="renameRelayDevice(${r.relay_id}, '${r.relay_name.replace(/'/g, "\\'")}')">✏️</button>
+                    <button class="icon-btn" title="Gỡ thiết bị khỏi bảng" onclick="removeRelayDevice(${r.relay_id}, '${r.relay_name.replace(/'/g, "\\'")}')">🗑️</button>
+                  </div>
+                  <div style="font-size:12px; color:var(--muted); margin-top:2px;">
+                    ${isOn ? 'Đang hoạt động' : 'Đang tắt'} • ${hasPerm ? 'Có quyền điều khiển' : 'Chỉ xem'}
+                  </div>
+                </div>
+              </div>
+              <label class="switch" title="${isOn ? 'Tắt thiết bị' : 'Bật thiết bị'}">
+                <input type="checkbox" ${isOn ? 'checked' : ''} ${hasPerm ? '' : 'disabled'}
+                  onchange="toggleRelay(${r.relay_id}, this.checked)">
+                <span class="slider"></span>
+              </label>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // 3. Nhật ký
       const lRes = await apiFetch('/api/logs');
       const logs = await lRes.json();
       document.getElementById('logs-tbody').innerHTML = logs.map(l => `
@@ -382,9 +769,9 @@
 
     async function simulateESP32() {
       const payload = {
-        temperature: +(27 + Math.random() * 12).toFixed(1),
-        humidity: +(55 + Math.random() * 25).toFixed(1),
-        gas_value: Math.floor(200 + Math.random() * 550) // Có xác suất vượt ngưỡng 600 để test Auto-Fan
+        temperature: +(27 + Math.random() * 13).toFixed(1),
+        humidity: +(55 + Math.random() * 35).toFixed(1),
+        gas_value: Math.floor(200 + Math.random() * 550)
       };
       await fetch('/api/sensors', {
         method: 'POST',
@@ -400,11 +787,10 @@
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'baocao_cambien_iot.csv';
+      a.download = 'baocao_smarthome.csv';
       a.click();
     }
 
-    // Quản lý User (Admin)
     function onRoleSelectChange() {
       const role = document.getElementById('new-role').value;
       const r1 = document.getElementById('perm-r1');
@@ -423,7 +809,7 @@
         can_relay_2: document.getElementById('perm-r2').checked
       };
       if (!payload.username || !payload.password || !payload.full_name) {
-        alert('Vui lòng điền đầy đủ thông tin tài khoản!');
+        alert('Vui lòng điền đầy đủ thông tin!');
         return;
       }
       const res = await apiFetch('/api/users', { method: 'POST', body: JSON.stringify(payload) });
@@ -471,24 +857,36 @@
     }
 
     async function deleteUser(id) {
-      if (!confirm('Bạn chắc chắn muốn xóa tài khoản này?')) return;
+      if (!confirm('Bạn chắc chắn muốn xóa thành viên này?')) return;
       await apiFetch(`/api/users/${id}`, { method: 'DELETE' });
       loadUsers();
     }
 
     function renderChart(data) {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      const gridColor = isDark ? '#26334d' : '#e2e8f0';
+      const textColor = isDark ? '#94a3b8' : '#64748b';
       const labels = data.map(d => new Date(d.created_at).toLocaleTimeString('vi-VN'));
+
       if (chartInstance) chartInstance.destroy();
       chartInstance = new Chart(document.getElementById('mainChart'), {
         type: 'line',
         data: {
           labels,
           datasets: [
-            { label: 'Nhiệt độ (°C)', data: data.map(d => d.temperature), borderColor: '#38bdf8', tension: 0.3 },
-            { label: 'Độ ẩm (%)', data: data.map(d => d.humidity), borderColor: '#34d399', tension: 0.3 }
+            { label: 'Nhiệt độ (°C)', data: data.map(d => d.temperature), borderColor: '#0ea5e9', backgroundColor: 'rgba(14,165,233,0.1)', fill: true, tension: 0.35 },
+            { label: 'Độ ẩm (%)', data: data.map(d => d.humidity), borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.35 }
           ]
         },
-        options: { responsive: true, animation: false, scales: { y: { grid: { color: '#334155' } }, x: { grid: { color: '#334155' } } } }
+        options: {
+          responsive: true,
+          animation: false,
+          plugins: { legend: { labels: { color: textColor } } },
+          scales: {
+            y: { grid: { color: gridColor }, ticks: { color: textColor } },
+            x: { grid: { color: gridColor }, ticks: { color: textColor } }
+          }
+        }
       });
     }
 

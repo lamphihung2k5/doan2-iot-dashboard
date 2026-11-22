@@ -7,8 +7,8 @@ const { Pool } = require('pg');
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }, // Bắt buộc cho Supabase[cite: 1]
-  max: 5, // Giới hạn kết nối cho gói Free[cite: 1]
+  ssl: { rejectUnauthorized: false }, // Bắt buộc cho Supabase
+  max: 5, // Giới hạn kết nối cho gói Free
 });
 
 const JWT_SECRET = process.env.JWT_SECRET || 'doan2_smart_home_gateway_secret';
@@ -48,7 +48,7 @@ function authMiddleware(req, res, next) {
   }
 }
 
-// Endpoint giữ server không ngủ cho UptimeRobot[cite: 1]
+// Endpoint giữ server không ngủ cho UptimeRobot
 app.get('/healthz', (req, res) => res.send('ok'));
 
 // ================= API ĐĂNG NHẬP & QUẢN LÝ USER =================
@@ -151,17 +151,18 @@ app.post('/api/sensors', async (req, res) => {
     const cfgRes = await pool.query('SELECT * FROM system_settings WHERE id = 1');
     const cfg = cfgRes.rows[0];
     if (cfg && cfg.auto_ventilation && gas_value >= cfg.gas_threshold) {
-      const relay2 = await pool.query('SELECT state FROM device_states WHERE relay_id = 2');
+      const relay2 = await pool.query('SELECT state, relay_name FROM device_states WHERE relay_id = 2');
       if (relay2.rows[0] && !relay2.rows[0].state) {
+        const devName = relay2.rows[0].relay_name || 'Thiết bị Kênh 2';
         await pool.query('UPDATE device_states SET state = true, updated_at = NOW() WHERE relay_id = 2');
         await pool.query('INSERT INTO action_logs (username, action_desc) VALUES ($1, $2)', [
           'SYSTEM_AUTO',
-          `Cảnh báo Gas (${gas_value} ppm >= ${cfg.gas_threshold} ppm) -> Tự động BẬT Quạt thông gió`,
+          `Cảnh báo Gas (${gas_value} ppm >= ${cfg.gas_threshold} ppm) -> Tự động BẬT ${devName}`,
         ]);
       }
     }
 
-    // Dọn dẹp log cũ hơn 30 ngày để tối ưu 500 MB của Supabase Free[cite: 1]
+    // Dọn dẹp log cũ hơn 30 ngày để tối ưu 500 MB của Supabase Free
     await pool.query("DELETE FROM sensor_logs WHERE created_at < NOW() - INTERVAL '30 days'");
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -182,15 +183,34 @@ app.get('/api/sensors/export', authMiddleware, async (req, res) => {
     csv += `${r.id},${r.device_id},${r.temperature},${r.humidity},${r.gas_value},${new Date(r.created_at).toISOString()}\n`;
   });
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-  res.setHeader('Content-Disposition', 'attachment; filename="baocao_cambien_iot.csv"');
-  res.send('\uFEFF' + csv); // Thêm BOM UTF-8 để mở Excel không lỗi font tiếng Việt
+  res.setHeader('Content-Disposition', 'attachment; filename="baocao_smarthome.csv"');
+  res.send('\uFEFF' + csv);
 });
 
-// ================= API ĐIỀU KHIỂN RELAY & CẤU HÌNH =================
+// ================= API ĐIỀU KHIỂN RELAY & ĐỔI TÊN THIẾT BỊ =================
 // ESP32 gọi trực tiếp endpoint này để đồng bộ chân G27 và G14
 app.get('/api/relays', async (req, res) => {
   const { rows } = await pool.query('SELECT * FROM device_states ORDER BY relay_id ASC');
   res.json(rows);
+});
+
+// Cập nhật tên thiết bị Relay vào database Supabase
+app.put('/api/relays/:id/name', authMiddleware, async (req, res) => {
+  const relayId = parseInt(req.params.id, 10);
+  const { relay_name } = req.body;
+  if (!relay_name || !relay_name.trim()) {
+    return res.status(400).json({ error: 'Tên thiết bị không được để trống' });
+  }
+  const cleanName = relay_name.trim();
+  const { rows } = await pool.query(
+    'UPDATE device_states SET relay_name = $1, updated_at = NOW() WHERE relay_id = $2 RETURNING *',
+    [cleanName, relayId]
+  );
+  await pool.query('INSERT INTO action_logs (username, action_desc) VALUES ($1, $2)', [
+    req.user.username,
+    `Đổi tên Kênh ${relayId} thành "${cleanName}"`,
+  ]);
+  res.json(rows[0]);
 });
 
 // Web Dashboard gọi điều khiển Relay (Kiểm tra quyền từng kênh)
@@ -198,7 +218,6 @@ app.post('/api/relays/:id', authMiddleware, async (req, res) => {
   const relayId = parseInt(req.params.id, 10);
   const { state } = req.body;
 
-  // Lấy quyền mới nhất từ DB
   const userRes = await pool.query('SELECT * FROM users WHERE id = $1', [req.user.id]);
   const currentUser = userRes.rows[0];
 
@@ -206,10 +225,10 @@ app.post('/api/relays/:id', authMiddleware, async (req, res) => {
     return res.status(403).json({ error: 'Tài khoản Chỉ xem (Viewer) không được phép điều khiển thiết bị!' });
   }
   if (relayId === 1 && !currentUser.can_relay_1 && currentUser.role !== 'admin') {
-    return res.status(403).json({ error: 'Bạn chưa được cấp quyền điều khiển Đèn phòng khách!' });
+    return res.status(403).json({ error: 'Bạn chưa được cấp quyền điều khiển Kênh 1!' });
   }
   if (relayId === 2 && !currentUser.can_relay_2 && currentUser.role !== 'admin') {
-    return res.status(403).json({ error: 'Bạn chưa được cấp quyền điều khiển Quạt thông gió!' });
+    return res.status(403).json({ error: 'Bạn chưa được cấp quyền điều khiển Kênh 2!' });
   }
 
   const { rows } = await pool.query(
@@ -217,7 +236,7 @@ app.post('/api/relays/:id', authMiddleware, async (req, res) => {
     [state, relayId]
   );
 
-  const deviceName = relayId === 1 ? 'Đèn phòng khách' : 'Quạt thông gió';
+  const deviceName = rows[0]?.relay_name || `Thiết bị Kênh ${relayId}`;
   await pool.query('INSERT INTO action_logs (username, action_desc) VALUES ($1, $2)', [
     currentUser.username,
     `${state ? 'BẬT' : 'TẮT'} ${deviceName} (Kênh ${relayId})`,
@@ -241,7 +260,7 @@ app.post('/api/settings', authMiddleware, async (req, res) => {
   );
   await pool.query('INSERT INTO action_logs (username, action_desc) VALUES ($1, $2)', [
     req.user.username,
-    `Cập nhật ngưỡng: Gas=${gas_threshold}ppm, Nhiệt=${temp_threshold}°C, AutoQuạt=${auto_ventilation ? 'Bật' : 'Tắt'}`,
+    `Cập nhật ngưỡng: Gas=${gas_threshold}ppm, Nhiệt=${temp_threshold}°C, AutoKênh2=${auto_ventilation ? 'Bật' : 'Tắt'}`,
   ]);
   res.json(rows[0]);
 });
@@ -254,5 +273,5 @@ app.get('/api/logs', authMiddleware, async (req, res) => {
 
 const port = process.env.PORT || 3000;
 app.listen(port, '0.0.0.0', () => {
-  console.log(`IoT Gateway Dashboard v2.0 đang chạy tại cổng ${port}`);
+  console.log(`Smart Home Dashboard đang chạy tại cổng ${port}`);
 });
