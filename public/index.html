@@ -508,7 +508,7 @@
 
           <div class="card metric-card" id="card-gas">
             <div class="metric-head">
-              <span class="metric-label"><i data-lucide="flame"></i> Khí Gas (MQ-2)</span>
+              <span class="metric-label"><i data-lucide="flame"></i> Khí Gas</span>
               <span class="tag ok" id="tag-gas">An toàn</span>
             </div>
             <div class="metric-value" id="val-gas">-- ppm</div>
@@ -533,8 +533,8 @@
           <div class="card">
             <div class="card-header">
               <div>
-                <h3 class="card-title">Biểu đồ môi trường</h3>
-                <div class="card-sub">Dữ liệu cập nhật liên tục từ cảm biến</div>
+                <h3 class="card-title">Biểu đồ nhiệt độ và độ ẩm</h3>
+                <div class="card-sub"></div>
               </div>
             </div>
             <canvas id="mainChart" height="175"></canvas>
@@ -549,7 +549,7 @@
             <div class="card-header">
               <div>
                 <h3 class="card-title">Tạo lịch hẹn giờ mới</h3>
-                <div class="card-sub">Tự động thực thi theo giờ Việt Nam (đồng bộ RTC DS3231)</div>
+                <div class="card-sub">Hệ thống hoạt động theo giờ Việt Nam (UTC +7)</div>
               </div>
             </div>
             <label>Chọn kênh thiết bị</label>
@@ -574,7 +574,7 @@
             <div class="card-header">
               <div>
                 <h3 class="card-title">Danh sách lịch đang chạy</h3>
-                <div class="card-sub">Bật/tắt nhanh hoặc xóa lịch hẹn không dùng</div>
+                <div class="card-sub"></div>
               </div>
             </div>
             <div style="overflow-x:auto;">
@@ -615,7 +615,7 @@
             <div class="card-header">
               <div>
                 <h3 class="card-title">Nhật ký hệ thống</h3>
-                <div class="card-sub">20 thao tác gần nhất từ người dùng và bộ hẹn giờ</div>
+                <div class="card-sub"></div>
               </div>
             </div>
             <div style="max-height:340px; overflow-y:auto;">
@@ -636,14 +636,14 @@
             <div class="card-header">
               <div>
                 <h3 class="card-title">Bộ nhớ thẻ MicroSD & Kết nối</h3>
-                <div class="card-sub">Thông số phần cứng phản hồi trực tiếp từ ESP32</div>
+                <div class="card-sub"></div>
               </div>
             </div>
 
             <div style="margin-bottom:20px;">
               <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:600;">
                 <span>Dung lượng thẻ nhớ SD Card</span>
-                <span id="sd-detail-pct">--% đã dùng</span>
+                <span id="sd-detail-pct"></span>
               </div>
               <div class="progress-track">
                 <div class="progress-fill" id="sd-progress-bar" style="width: 0%;"></div>
@@ -654,7 +654,7 @@
               </div>
             </div>
 
-            <label>Chế độ kết nối mạng ưu tiên (Có dây / Không dây)</label>
+            <label>Chế độ kết nối mạng</label>
             <div class="segmented" id="net-mode-selector">
               <button class="seg-btn" data-mode="ethernet" onclick="setNetworkMode('ethernet')">
                 <i data-lucide="cable"></i> Có dây (LAN)
@@ -680,12 +680,12 @@
             <div class="card-header">
               <div>
                 <h3 class="card-title">Cài đặt Wi-Fi cho ESP32</h3>
-                <div class="card-sub">Thay đổi mạng Wi-Fi của bo mạch từ xa không cần nạp lại code</div>
+                <div class="card-sub"></div>
               </div>
               <span class="tag" id="wifi-sync-tag">Đã đồng bộ</span>
             </div>
 
-            <label>Tên mạng Wi-Fi (SSID)</label>
+            <label>Tên mạng Wi-Fi</label>
             <input type="text" id="wifi-ssid" placeholder="VD: Nha_Cua_Hung_2.4G">
 
             <label>Mật khẩu Wi-Fi</label>
@@ -695,7 +695,7 @@
               <i data-lucide="send"></i> Gửi cấu hình Wi-Fi xuống ESP32
             </button>
             <p style="font-size:12px; color:var(--muted); margin-top:12px; margin-bottom:0;">
-              Lưu ý: ESP32 chỉ hỗ trợ băng tần 2.4GHz. Sau khi bấm gửi, bo mạch sẽ tự nhận cấu hình mới ở chu kỳ đồng bộ tiếp theo và lưu vào bộ nhớ NVS.
+              Lưu ý: Thiết bị chỉ hỗ trợ băng tần 2.4GHz.
             </p>
           </div>
         </div>
