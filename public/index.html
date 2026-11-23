@@ -3,451 +3,743 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Smart Home - Hệ thống điều khiển nhà thông minh</title>
+  <title>SmartHome OS — Gateway Control</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #f4f6f9;
+      --bg: #f1f5f9;
+      --sidebar-bg: #ffffff;
       --surface: #ffffff;
       --surface-soft: #f8fafc;
       --border: #e2e8f0;
       --text: #0f172a;
       --muted: #64748b;
       --primary: #2563eb;
-      --primary-hover: #1d4ed8;
+      --primary-soft: rgba(37, 99, 235, 0.1);
+      --accent: #0ea5e9;
       --success: #10b981;
+      --success-soft: rgba(16, 185, 129, 0.12);
       --warning: #f59e0b;
       --danger: #ef4444;
-      --shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+      --danger-soft: rgba(239, 68, 68, 0.12);
       --input-bg: #ffffff;
-      --chart-grid: #e2e8f0;
+      --shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 4px 16px rgba(15, 23, 42, 0.03);
     }
 
     [data-theme="dark"] {
       --bg: #0b1120;
-      --surface: #131c31;
-      --surface-soft: #1a253c;
+      --sidebar-bg: #111827;
+      --surface: #151f32;
+      --surface-soft: #1e293b;
       --border: #26334d;
-      --text: #f1f5f9;
+      --text: #f8fafc;
       --muted: #94a3b8;
       --primary: #3b82f6;
-      --primary-hover: #2563eb;
+      --primary-soft: rgba(59, 130, 246, 0.16);
+      --accent: #38bdf8;
       --success: #10b981;
+      --success-soft: rgba(16, 185, 129, 0.16);
       --warning: #fbbf24;
       --danger: #f87171;
-      --shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+      --danger-soft: rgba(248, 113, 113, 0.16);
       --input-bg: #0f172a;
-      --chart-grid: #26334d;
+      --shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
     }
 
-    * { box-sizing: border-box; transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease; }
+    * { box-sizing: border-box; }
     body {
-      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       background: var(--bg);
       color: var(--text);
       margin: 0;
-      padding: 20px;
       line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
     }
-    .container { max-width: 1120px; margin: 0 auto; }
     .hidden { display: none !important; }
 
-    .card {
+    /* ================= LOGIN SCREEN ================= */
+    .login-wrapper {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .login-card {
+      width: 100%;
+      max-width: 400px;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 16px;
-      padding: 22px;
-      margin-bottom: 20px;
+      padding: 32px;
       box-shadow: var(--shadow);
     }
-
-    /* Login */
-    .login-box { max-width: 410px; margin: 70px auto; padding: 32px; }
-    .login-logo {
-      width: 48px; height: 48px; border-radius: 14px;
-      background: linear-gradient(135deg, #2563eb, #38bdf8);
+    .brand-mark {
+      width: 40px; height: 40px; border-radius: 10px;
+      background: var(--primary); color: #fff;
       display: flex; align-items: center; justify-content: center;
-      color: white; font-size: 24px; margin-bottom: 16px;
     }
 
-    /* Form elements */
-    label { display: block; font-size: 13px; font-weight: 500; color: var(--muted); margin-bottom: 6px; }
-    input, select {
-      width: 100%;
-      padding: 10px 14px;
-      margin-bottom: 14px;
-      background: var(--input-bg);
-      border: 1px solid var(--border);
-      color: var(--text);
-      border-radius: 10px;
-      font-size: 14px;
-      font-family: inherit;
+    /* ================= APP SHELL (SIDEBAR + MAIN) ================= */
+    .app-shell {
+      display: flex;
+      min-height: 100vh;
     }
-    input:focus, select:focus { outline: none; border-color: var(--primary); }
 
-    button {
-      background: var(--primary);
-      color: white;
-      border: none;
-      padding: 10px 16px;
-      border-radius: 10px;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 13.5px;
-      font-family: inherit;
-      display: inline-flex;
+    .sidebar {
+      width: 256px;
+      background: var(--sidebar-bg);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 20px 14px;
+      position: fixed;
+      top: 0; bottom: 0; left: 0;
+      z-index: 40;
+      transition: transform 0.25s ease;
+    }
+
+    .sidebar-brand {
+      display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 6px;
+      gap: 12px;
+      padding: 4px 10px 22px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 16px;
     }
-    button:hover { background: var(--primary-hover); }
-    button:disabled { opacity: 0.45; cursor: not-allowed; }
-    button.success { background: var(--success); color: #fff; }
-    button.success:hover { filter: brightness(0.95); }
-    button.danger { background: var(--danger); color: #fff; }
-    button.danger:hover { filter: brightness(0.95); }
-    button.ghost {
-      background: var(--surface-soft);
-      color: var(--text);
-      border: 1px solid var(--border);
+    .sidebar-brand h2 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
+    .sidebar-brand span { font-size: 11.5px; color: var(--muted); display: block; }
+
+    .nav-section-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--muted);
+      padding: 8px 12px 6px;
     }
-    button.ghost:hover { border-color: var(--primary); color: var(--primary); }
-    button.icon-btn {
-      padding: 6px 8px;
-      border-radius: 8px;
+
+    .nav-item {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: none;
       background: transparent;
       color: var(--muted);
-      border: 1px solid transparent;
+      font-size: 13.5px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      margin-bottom: 4px;
+      text-align: left;
+      transition: all 0.15s ease;
     }
-    button.icon-btn:hover { background: var(--surface-soft); color: var(--text); border-color: var(--border); }
+    .nav-item:hover { background: var(--surface-soft); color: var(--text); }
+    .nav-item.active {
+      background: var(--primary);
+      color: #ffffff;
+      font-weight: 600;
+    }
+    .nav-item i { width: 18px; height: 18px; }
 
-    /* Header */
-    header {
+    .sidebar-footer {
+      margin-top: auto;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+    }
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: var(--surface-soft);
+      margin-bottom: 10px;
+    }
+    .avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: var(--primary-soft); color: var(--primary);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 13px; flex-shrink: 0;
+    }
+    .user-meta { overflow: hidden; }
+    .user-meta strong { display: block; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-meta span { font-size: 11px; color: var(--muted); text-transform: uppercase; font-weight: 600; }
+
+    .footer-actions { display: flex; gap: 6px; }
+    .footer-actions button { flex: 1; padding: 8px; font-size: 12.5px; }
+
+    /* ================= MAIN CONTENT ================= */
+    .main-content {
+      flex: 1;
+      margin-left: 256px;
+      padding: 24px 28px;
+      max-width: 1440px;
+    }
+
+    .topbar {
       display: flex;
       flex-wrap: wrap;
       justify-content: space-between;
       align-items: center;
       gap: 14px;
-      margin-bottom: 22px;
+      margin-bottom: 24px;
     }
-    .brand { display: flex; align-items: center; gap: 12px; }
-    .brand-icon {
-      width: 42px; height: 42px; border-radius: 12px;
-      background: linear-gradient(135deg, #2563eb, #0ea5e9);
-      color: white; display: flex; align-items: center; justify-content: center;
-      font-size: 20px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
-    }
-    .header-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .topbar-left { display: flex; align-items: center; gap: 12px; }
+    .mobile-menu-btn { display: none; }
+    .page-title { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.4px; }
+    .live-clock { font-size: 13px; color: var(--muted); margin-top: 2px; }
 
-    /* Tabs */
-    .tabs {
-      display: inline-flex;
-      background: var(--surface);
-      padding: 5px;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      margin-bottom: 20px;
-      gap: 4px;
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       flex-wrap: wrap;
     }
-    .tab-btn {
-      background: transparent;
-      color: var(--muted);
-      border-radius: 9px;
-      padding: 8px 16px;
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--text);
     }
-    .tab-btn:hover { background: var(--surface-soft); color: var(--text); }
-    .tab-btn.active { background: var(--primary); color: white; }
+    .status-pill i { width: 14px; height: 14px; color: var(--muted); }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); }
+    .status-dot.offline { background: var(--danger); }
+
+    /* ================= CARDS & GRIDS ================= */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow);
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      gap: 10px;
+    }
+    .card-title { margin: 0; font-size: 15.5px; font-weight: 600; }
+    .card-sub { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 18px; }
+
+    /* Sensor Metric Cards */
+    .metric-card { position: relative; }
+    .metric-card.alarm { border-color: var(--danger); background: linear-gradient(180deg, var(--surface), var(--danger-soft)); }
+    .metric-head { display: flex; justify-content: space-between; align-items: center; }
+    .metric-label { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted); }
+    .metric-label i { width: 16px; height: 16px; }
+    .metric-value { font-size: 32px; font-weight: 700; margin: 14px 0 6px; letter-spacing: -0.6px; }
+    .metric-foot { font-size: 12px; color: var(--muted); }
+
+    .tag {
+      font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 6px;
+      background: var(--surface-soft); color: var(--muted); border: 1px solid var(--border);
+    }
+    .tag.ok { background: var(--success-soft); color: var(--success); border-color: transparent; }
+    .tag.danger { background: var(--danger); color: #fff; border-color: transparent; }
 
     /* Alert Banner */
     .alert-banner {
-      background: rgba(239, 68, 68, 0.12);
+      background: var(--danger-soft);
       border: 1px solid var(--danger);
       color: var(--danger);
-      padding: 14px 18px;
+      padding: 12px 16px;
       border-radius: 12px;
       margin-bottom: 20px;
+      font-size: 13.5px;
       font-weight: 600;
       display: flex;
       align-items: center;
       gap: 10px;
-      animation: pulseAlert 1.8s infinite;
     }
-    @keyframes pulseAlert { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
 
-    /* Grids & Sensor Cards */
-    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 18px; }
-    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 18px; }
-
-    .sensor-card { position: relative; overflow: hidden; }
-    .sensor-card.alarm {
-      border-color: var(--danger);
-      background: linear-gradient(to bottom right, var(--surface), rgba(239, 68, 68, 0.08));
-    }
-    .sensor-top { display: flex; justify-content: space-between; align-items: center; }
-    .sensor-label { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
-    .sensor-tag {
-      font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 20px;
-      background: var(--surface-soft); color: var(--muted); border: 1px solid var(--border);
-    }
-    .sensor-card.alarm .sensor-tag { background: var(--danger); color: white; border-color: var(--danger); }
-    .metric-val { font-size: 36px; font-weight: 700; margin: 12px 0 6px; letter-spacing: -0.5px; }
-    .sensor-sub { font-size: 12.5px; color: var(--muted); }
-
-    /* Relay Cards */
-    .relay-list { display: flex; flex-direction: column; gap: 12px; }
-    .relay-card {
-      background: var(--surface-soft);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 16px;
+    /* Relay Tiles */
+    .relay-grid { display: flex; flex-direction: column; gap: 12px; }
+    .relay-tile {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 12px;
+      padding: 14px 16px;
+      border-radius: 12px;
+      background: var(--surface-soft);
+      border: 1px solid var(--border);
+      transition: border-color 0.2s;
     }
-    .relay-card.is-on { border-color: rgba(16, 185, 129, 0.45); }
-    .relay-info { display: flex; align-items: center; gap: 12px; flex: 1; }
-    .relay-icon {
-      width: 42px; height: 42px; border-radius: 12px;
+    .relay-tile.is-on { border-color: var(--success); }
+    .relay-left { display: flex; align-items: center; gap: 12px; }
+    .relay-icon-box {
+      width: 40px; height: 40px; border-radius: 10px;
       background: var(--surface); border: 1px solid var(--border);
-      display: flex; align-items: center; justify-content: center; font-size: 20px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--muted);
     }
-    .relay-card.is-on .relay-icon { background: rgba(16, 185, 129, 0.15); border-color: var(--success); }
-    .relay-title-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-    .relay-name { font-weight: 600; font-size: 15px; }
-    .channel-pill {
-      font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 6px;
-      background: var(--surface); color: var(--muted); border: 1px solid var(--border);
+    .relay-tile.is-on .relay-icon-box {
+      background: var(--success-soft); border-color: transparent; color: var(--success);
     }
+    .relay-title-row { display: flex; align-items: center; gap: 6px; }
+    .relay-name { font-weight: 600; font-size: 14.5px; }
 
     /* Toggle Switch */
-    .switch { position: relative; display: inline-block; width: 52px; height: 28px; flex-shrink: 0; }
+    .switch { position: relative; display: inline-block; width: 46px; height: 26px; flex-shrink: 0; }
     .switch input { opacity: 0; width: 0; height: 0; margin: 0; }
     .slider {
-      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
-      background-color: #cbd5e1; transition: .25s; border-radius: 34px;
+      position: absolute; cursor: pointer; inset: 0;
+      background-color: #cbd5e1; transition: .2s; border-radius: 34px;
     }
     [data-theme="dark"] .slider { background-color: #334155; }
     .slider:before {
-      position: absolute; content: ""; height: 22px; width: 22px; left: 3px; bottom: 3px;
-      background-color: white; transition: .25s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px;
+      background-color: #fff; transition: .2s; border-radius: 50%;
     }
     input:checked + .slider { background-color: var(--success); }
-    input:checked + .slider:before { transform: translateX(24px); }
+    input:checked + .slider:before { transform: translateX(20px); }
     input:disabled + .slider { opacity: 0.4; cursor: not-allowed; }
 
-    /* Table & Badges */
-    .badge { padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; background: var(--surface-soft); border: 1px solid var(--border); }
-    .badge.admin { background: rgba(124, 58, 237, 0.15); color: #8b5cf6; border-color: rgba(139, 92, 246, 0.3); }
-    .badge.operator { background: rgba(2, 132, 199, 0.15); color: #0ea5e9; border-color: rgba(14, 165, 233, 0.3); }
-    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-    th, td { text-align: left; padding: 11px 10px; border-bottom: 1px solid var(--border); }
-    th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; }
-    .checkbox-group { display: flex; gap: 14px; margin: 8px 0 16px; align-items: center; }
-    .checkbox-group input { width: auto; margin: 0; }
+    /* Buttons & Inputs */
+    label { display: block; font-size: 12.5px; font-weight: 500; color: var(--muted); margin-bottom: 6px; }
+    input[type="text"], input[type="password"], input[type="number"], input[type="time"], select {
+      width: 100%; padding: 9px 12px; margin-bottom: 14px;
+      background: var(--input-bg); border: 1px solid var(--border);
+      color: var(--text); border-radius: 9px; font-size: 13.5px; font-family: inherit;
+    }
+    input:focus, select:focus { outline: none; border-color: var(--primary); }
+
+    button {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 9px 14px; border-radius: 9px; border: none;
+      background: var(--primary); color: #fff;
+      font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer;
+    }
+    button:hover { filter: brightness(0.95); }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    button.ghost { background: var(--surface-soft); color: var(--text); border: 1px solid var(--border); }
+    button.ghost:hover { border-color: var(--primary); color: var(--primary); }
+    button.danger { background: var(--danger); color: #fff; }
+    button.icon-btn {
+      padding: 5px; background: transparent; color: var(--muted); border-radius: 6px;
+    }
+    button.icon-btn:hover { background: var(--surface); color: var(--text); }
+    button i { width: 15px; height: 15px; }
+
+    /* Segmented Control (Ethernet / Wi-Fi / Auto) */
+    .segmented {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+      background: var(--surface-soft); padding: 4px; border-radius: 10px; border: 1px solid var(--border);
+      margin-bottom: 14px;
+    }
+    .seg-btn {
+      background: transparent; color: var(--muted); padding: 8px; border-radius: 7px; font-size: 12.5px;
+    }
+    .seg-btn.active { background: var(--primary); color: #fff; }
+
+    /* Progress Bar (SD Card) */
+    .progress-track {
+      width: 100%; height: 10px; background: var(--surface-soft);
+      border-radius: 999px; overflow: hidden; border: 1px solid var(--border); margin: 10px 0;
+    }
+    .progress-fill { height: 100%; background: var(--primary); border-radius: 999px; transition: width 0.4s ease; }
+
+    /* Tables */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-size: 11.5px; font-weight: 600; text-transform: uppercase; }
+
+    .checkbox-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; font-size: 13.5px; cursor: pointer; }
+    .checkbox-row input { width: auto; margin: 0; }
+
+    /* Mobile Responsive */
+    @media (max-width: 860px) {
+      .sidebar { transform: translateX(-100%); }
+      .sidebar.open { transform: translateX(0); box-shadow: 0 0 40px rgba(0,0,0,0.4); }
+      .main-content { margin-left: 0; padding: 18px 16px; }
+      .mobile-menu-btn { display: inline-flex; }
+    }
   </style>
 </head>
 <body>
   <!-- MÀN HÌNH ĐĂNG NHẬP -->
-  <div id="login-view" class="card login-box">
-    <div class="login-logo">🏠</div>
-    <h2 style="margin:0 0 4px;">Smart Home</h2>
-    <p style="color:var(--muted); font-size:14px; margin:0 0 20px;">Đăng nhập để giám sát và điều khiển thiết bị trong nhà</p>
-    <div id="login-error" style="color:var(--danger); font-size:13.5px; margin-bottom:12px;"></div>
-    <label>Tên đăng nhập</label>
-    <input type="text" id="login-user" placeholder="VD: admin" value="admin">
-    <label>Mật khẩu</label>
-    <input type="password" id="login-pass" placeholder="••••••" value="123456">
-    <button style="width:100%; padding:12px;" onclick="handleLogin()">Đăng nhập vào nhà</button>
+  <div id="login-view" class="login-wrapper">
+    <div class="login-card">
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px;">
+        <div class="brand-mark"><i data-lucide="cpu"></i></div>
+        <div>
+          <h2 style="margin:0; font-size:18px;">SmartHome OS</h2>
+          <span style="font-size:12.5px; color:var(--muted);">Hệ thống điều khiển Gateway ESP32</span>
+        </div>
+      </div>
+      <div id="login-error" style="color:var(--danger); font-size:13px; margin-bottom:12px;"></div>
+      <label>Tên đăng nhập</label>
+      <input type="text" id="login-user" value="admin" placeholder="Nhập tài khoản">
+      <label>Mật khẩu</label>
+      <input type="password" id="login-pass" value="123456" placeholder="Nhập mật khẩu">
+      <button style="width:100%; padding:11px;" onclick="handleLogin()">
+        <i data-lucide="log-in"></i> Đăng nhập hệ thống
+      </button>
+    </div>
   </div>
 
-  <!-- MÀN HÌNH DASHBOARD CHÍNH -->
-  <div id="app-view" class="container hidden">
-    <header>
-      <div class="brand">
-        <div class="brand-icon">🏠</div>
+  <!-- GIAO DIỆN CHÍNH -->
+  <div id="app-view" class="app-shell hidden">
+    <!-- SIDEBAR TRÁI -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-mark"><i data-lucide="cpu"></i></div>
         <div>
-          <h1 style="margin:0; font-size:21px; font-weight:700;">Smart Home</h1>
-          <div style="color:var(--muted); font-size:13px;">
-            Xin chào, <strong id="user-display" style="color:var(--text);"></strong>
-            <span id="role-badge" class="badge" style="margin-left:4px;"></span>
+          <h2>SmartHome OS</h2>
+          <span>ESP32 IoT Gateway</span>
+        </div>
+      </div>
+
+      <div class="nav-section-label">Điều khiển</div>
+      <button class="nav-item active" onclick="switchTab('tab-monitor', 'Tổng quan & Thiết bị', this)">
+        <i data-lucide="layout-dashboard"></i> Tổng quan
+      </button>
+      <button class="nav-item" onclick="switchTab('tab-schedule', 'Hẹn giờ thời gian thực', this)">
+        <i data-lucide="clock"></i> Lịch hẹn giờ
+      </button>
+      <button class="nav-item" onclick="switchTab('tab-auto', 'Ngưỡng báo động & Nhật ký', this)">
+        <i data-lucide="bell-ring"></i> Ngưỡng & Nhật ký
+      </button>
+
+      <div class="nav-section-label" style="margin-top:10px;">Hệ thống</div>
+      <button class="nav-item" onclick="switchTab('tab-system', 'Phần cứng, Mạng & Wi-Fi', this)">
+        <i data-lucide="sliders"></i> Hệ thống & Mạng
+      </button>
+      <button id="nav-users" class="nav-item hidden" onclick="switchTab('tab-users', 'Thành viên & Phân quyền', this)">
+        <i data-lucide="users"></i> Thành viên
+      </button>
+
+      <div class="sidebar-footer">
+        <div class="user-profile">
+          <div class="avatar" id="user-avatar">A</div>
+          <div class="user-meta">
+            <strong id="user-display">Admin</strong>
+            <span id="role-badge">ADMIN</span>
+          </div>
+        </div>
+        <div class="footer-actions">
+          <button class="ghost" id="theme-toggle" onclick="toggleTheme()" title="Đổi giao diện Sáng / Tối">
+            <i data-lucide="moon"></i>
+          </button>
+          <button class="ghost" onclick="exportCSV()" title="Xuất dữ liệu CSV">
+            <i data-lucide="download"></i>
+          </button>
+          <button class="ghost" style="color:var(--danger);" onclick="logout()" title="Đăng xuất">
+            <i data-lucide="log-out"></i>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- NỘI DUNG CHÍNH -->
+    <main class="main-content" onclick="closeSidebarOnMobile(event)">
+      <div class="topbar">
+        <div class="topbar-left">
+          <button class="ghost mobile-menu-btn" onclick="toggleSidebar(event)"><i data-lucide="menu"></i></button>
+          <div>
+            <h1 class="page-title" id="page-title">Tổng quan & Thiết bị</h1>
+            <div class="live-clock" id="live-clock">--:--:--</div>
+          </div>
+        </div>
+
+        <!-- THANH TRẠNG THÁI PHẦN CỨNG NHANH -->
+        <div class="status-bar">
+          <div class="status-pill" title="Trạng thái kết nối bo mạch">
+            <span class="status-dot" id="gw-online-dot"></span>
+            <i id="gw-conn-icon" data-lucide="wifi"></i>
+            <span id="gw-conn-text">Wi-Fi</span>
+          </div>
+          <div class="status-pill" title="Tốc độ mạng hiện tại">
+            <i data-lucide="gauge"></i>
+            <span id="gw-speed-text">-- Mbps</span>
+          </div>
+          <div class="status-pill" title="Dung lượng trống thẻ nhớ MicroSD">
+            <i data-lucide="hard-drive"></i>
+            <span id="gw-sd-text">SD: -- MB trống</span>
           </div>
         </div>
       </div>
 
-      <div class="header-actions">
-        <button class="ghost" id="theme-toggle" onclick="toggleTheme()" title="Chuyển giao diện Sáng / Tối">🌙 Chế độ tối</button>
-        <button class="success" onclick="simulateESP32()">⚡ Giả lập gói tin ESP32</button>
-        <button class="ghost" onclick="exportCSV()">📥 Xuất CSV</button>
-        <button class="danger" onclick="logout()">Đăng xuất</button>
-      </div>
-    </header>
-
-    <div id="global-alert" class="alert-banner hidden">
-      <span>🚨</span>
-      <span id="global-alert-text">Cảnh báo: Có thông số cảm biến vượt ngưỡng an toàn!</span>
-    </div>
-
-    <!-- THANH ĐIỀU HƯỚNG TAB -->
-    <div class="tabs">
-      <button class="tab-btn active" onclick="switchTab('tab-monitor', this)">🏡 Không gian & Thiết bị</button>
-      <button class="tab-btn" onclick="switchTab('tab-auto', this)">🔔 Ngưỡng báo động & Nhật ký</button>
-      <button id="nav-users" class="tab-btn hidden" onclick="switchTab('tab-users', this)">👥 Thành viên & Phân quyền</button>
-    </div>
-
-    <!-- TAB 1: GIÁM SÁT & ĐIỀU KHIỂN -->
-    <div id="tab-monitor">
-      <div class="grid-3">
-        <div class="card sensor-card" id="card-temp">
-          <div class="sensor-top">
-            <span class="sensor-label">🌡️ Nhiệt độ phòng</span>
-            <span class="sensor-tag" id="tag-temp">Bình thường</span>
-          </div>
-          <div class="metric-val" id="val-temp" style="color:#0ea5e9;">-- °C</div>
-          <div class="sensor-sub" id="sub-temp">Ngưỡng báo động: 38.0 °C</div>
-        </div>
-
-        <div class="card sensor-card" id="card-hum">
-          <div class="sensor-top">
-            <span class="sensor-label">💧 Độ ẩm không khí</span>
-            <span class="sensor-tag" id="tag-hum">Bình thường</span>
-          </div>
-          <div class="metric-val" id="val-hum" style="color:#10b981;">-- %</div>
-          <div class="sensor-sub" id="sub-hum">Ngưỡng báo động: 85 %</div>
-        </div>
-
-        <div class="card sensor-card" id="card-gas">
-          <div class="sensor-top">
-            <span class="sensor-label">🔥 Cảm biến khí Gas</span>
-            <span class="sensor-tag" id="tag-gas">An toàn</span>
-          </div>
-          <div class="metric-val" id="val-gas" style="color:#f59e0b;">-- ppm</div>
-          <div class="sensor-sub" id="sub-gas">Ngưỡng báo động: 600 ppm</div>
-        </div>
+      <!-- BANNER CẢNH BÁO -->
+      <div id="global-alert" class="alert-banner hidden">
+        <i data-lucide="alert-triangle"></i>
+        <span id="global-alert-text">Cảnh báo vượt ngưỡng an toàn!</span>
       </div>
 
-      <div class="grid-2">
-        <!-- BẢNG ĐIỀU KHIỂN TỐI ĐA 2 RELAY -->
-        <div class="card">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-            <div>
-              <h3 style="margin:0; font-size:17px;">Thiết bị điều khiển (Tối đa 2 kênh)</h3>
-              <div style="font-size:12.5px; color:var(--muted);">Bấm biểu tượng bút để đổi tên hoặc thêm/xóa thiết bị</div>
+      <!-- TAB 1: TỔNG QUAN & ĐIỀU KHIỂN -->
+      <div id="tab-monitor">
+        <div class="grid-3">
+          <div class="card metric-card" id="card-temp">
+            <div class="metric-head">
+              <span class="metric-label"><i data-lucide="thermometer"></i> Nhiệt độ</span>
+              <span class="tag ok" id="tag-temp">Bình thường</span>
             </div>
-            <button id="btn-add-device" class="ghost" style="padding:7px 12px; font-size:12.5px;" onclick="addRelayDevice()">
-              + Thêm thiết bị
-            </button>
+            <div class="metric-value" id="val-temp">-- °C</div>
+            <div class="metric-foot" id="sub-temp">Ngưỡng báo động: 38.0 °C</div>
           </div>
-          <div id="relay-container" class="relay-list">Đang tải thiết bị...</div>
+
+          <div class="card metric-card" id="card-hum">
+            <div class="metric-head">
+              <span class="metric-label"><i data-lucide="droplets"></i> Độ ẩm</span>
+              <span class="tag ok" id="tag-hum">Bình thường</span>
+            </div>
+            <div class="metric-value" id="val-hum">-- %</div>
+            <div class="metric-foot" id="sub-hum">Ngưỡng báo động: 85 %</div>
+          </div>
+
+          <div class="card metric-card" id="card-gas">
+            <div class="metric-head">
+              <span class="metric-label"><i data-lucide="flame"></i> Khí Gas (MQ-2)</span>
+              <span class="tag ok" id="tag-gas">An toàn</span>
+            </div>
+            <div class="metric-value" id="val-gas">-- ppm</div>
+            <div class="metric-foot" id="sub-gas">Ngưỡng báo động: 600 ppm</div>
+          </div>
         </div>
 
-        <!-- BIỂU ĐỒ THỜI GIAN THỰC -->
-        <div class="card">
-          <h3 style="margin:0 0 14px; font-size:17px;">Biểu đồ môi trường theo thời gian thực</h3>
-          <canvas id="mainChart" height="175"></canvas>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Thiết bị điều khiển (Relay)</h3>
+                <div class="card-sub">Hỗ trợ tối đa 2 kênh đầu ra cách ly quang</div>
+              </div>
+              <button id="btn-add-device" class="ghost" onclick="addRelayDevice()">
+                <i data-lucide="plus"></i> Thêm thiết bị
+              </button>
+            </div>
+            <div id="relay-container" class="relay-grid">Đang tải...</div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Biểu đồ môi trường</h3>
+                <div class="card-sub">Dữ liệu cập nhật liên tục từ cảm biến</div>
+              </div>
+            </div>
+            <canvas id="mainChart" height="175"></canvas>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- TAB 2: CÀI ĐẶT NGƯỠNG BÁO ĐỘNG & NHẬT KÝ -->
-    <div id="tab-auto" class="hidden">
-      <div class="grid-2">
-        <div class="card">
-          <h3 style="margin-top:0;">Cài đặt ngưỡng báo động cảm biến</h3>
-          <p style="font-size:13px; color:var(--muted); margin-top:-6px; margin-bottom:16px;">
-            Hệ thống sẽ phát cảnh báo trực quan ngay khi thông số vượt mức cài đặt bên dưới.
-          </p>
+      <!-- TAB 2: HẸN GIỜ BẬT TẮT THỜI GIAN THỰC -->
+      <div id="tab-schedule" class="hidden">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Tạo lịch hẹn giờ mới</h3>
+                <div class="card-sub">Tự động thực thi theo giờ Việt Nam (đồng bộ RTC DS3231)</div>
+              </div>
+            </div>
+            <label>Chọn kênh thiết bị</label>
+            <select id="sch-relay">
+              <option value="1">Kênh 1</option>
+              <option value="2">Kênh 2</option>
+            </select>
 
-          <label>Ngưỡng báo động Khí Gas (ppm)</label>
-          <input type="number" id="cfg-gas" value="600">
+            <label>Hành động thực thi</label>
+            <select id="sch-action">
+              <option value="true">BẬT thiết bị</option>
+              <option value="false">TẮT thiết bị</option>
+            </select>
 
-          <label>Ngưỡng báo động Nhiệt độ (°C)</label>
-          <input type="number" id="cfg-temp" step="0.5" value="38.0">
+            <label>Thời gian (Giờ : Phút)</label>
+            <input type="time" id="sch-time" value="18:00">
 
-          <label>Ngưỡng báo động Độ ẩm (%)</label>
-          <input type="number" id="cfg-hum" step="1" value="85">
-
-          <div class="checkbox-group">
-            <input type="checkbox" id="cfg-auto-fan" checked>
-            <label for="cfg-auto-fan" style="margin:0; color:var(--text);">Tự động BẬT <strong id="lbl-auto-dev">Relay Kênh 2</strong> khi khí Gas vượt ngưỡng</label>
+            <button onclick="createSchedule()"><i data-lucide="calendar-plus"></i> Lưu lịch hẹn giờ</button>
           </div>
-          <button id="btn-save-cfg" onclick="saveSettings()">💾 Lưu ngưỡng báo động</button>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Danh sách lịch đang chạy</h3>
+                <div class="card-sub">Bật/tắt nhanh hoặc xóa lịch hẹn không dùng</div>
+              </div>
+            </div>
+            <div style="overflow-x:auto;">
+              <table>
+                <thead><tr><th>Giờ</th><th>Thiết bị</th><th>Lệnh</th><th>Trạng thái</th><th></th></tr></thead>
+                <tbody id="schedules-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: NGƯỠNG BÁO ĐỘNG & NHẬT KÝ -->
+      <div id="tab-auto" class="hidden">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Cài đặt ngưỡng báo động</h3>
+                <div class="card-sub">Tự động cảnh báo và kích hoạt quạt hút khi vượt mức</div>
+              </div>
+            </div>
+            <label>Ngưỡng khí Gas (ppm)</label>
+            <input type="number" id="cfg-gas" value="600">
+            <label>Ngưỡng Nhiệt độ (°C)</label>
+            <input type="number" id="cfg-temp" step="0.5" value="38.0">
+            <label>Ngưỡng Độ ẩm (%)</label>
+            <input type="number" id="cfg-hum" step="1" value="85">
+
+            <label class="checkbox-row">
+              <input type="checkbox" id="cfg-auto-fan" checked>
+              <span>Tự động BẬT <strong id="lbl-auto-dev">Kênh 2</strong> khi khí Gas vượt ngưỡng</span>
+            </label>
+            <button id="btn-save-cfg" onclick="saveSettings()"><i data-lucide="save"></i> Lưu cấu hình</button>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Nhật ký hệ thống</h3>
+                <div class="card-sub">20 thao tác gần nhất từ người dùng và bộ hẹn giờ</div>
+              </div>
+            </div>
+            <div style="max-height:340px; overflow-y:auto;">
+              <table>
+                <thead><tr><th>Thời gian</th><th>Nguồn</th><th>Nội dung</th></tr></thead>
+                <tbody id="logs-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 4: HỆ THỐNG, SD CARD, MẠNG & CÀI ĐẶT WI-FI ESP32 -->
+      <div id="tab-system" class="hidden">
+        <div class="grid-2">
+          <!-- TRẠNG THÁI BỘ NHỚ SD CARD & MẠNG -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Bộ nhớ thẻ MicroSD & Kết nối</h3>
+                <div class="card-sub">Thông số phần cứng phản hồi trực tiếp từ ESP32</div>
+              </div>
+            </div>
+
+            <div style="margin-bottom:20px;">
+              <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:600;">
+                <span>Dung lượng thẻ nhớ SD Card</span>
+                <span id="sd-detail-pct">--% đã dùng</span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-fill" id="sd-progress-bar" style="width: 0%;"></div>
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--muted);">
+                <span id="sd-used-label">Đã dùng: -- MB</span>
+                <span id="sd-free-label">Còn trống: -- MB / -- MB</span>
+              </div>
+            </div>
+
+            <label>Chế độ kết nối mạng ưu tiên (Có dây / Không dây)</label>
+            <div class="segmented" id="net-mode-selector">
+              <button class="seg-btn" data-mode="ethernet" onclick="setNetworkMode('ethernet')">
+                <i data-lucide="cable"></i> Có dây (LAN)
+              </button>
+              <button class="seg-btn" data-mode="wifi" onclick="setNetworkMode('wifi')">
+                <i data-lucide="wifi"></i> Không dây (Wi-Fi)
+              </button>
+              <button class="seg-btn" data-mode="auto" onclick="setNetworkMode('auto')">
+                <i data-lucide="refresh-cw"></i> Tự động
+              </button>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:13px; background:var(--surface-soft); padding:12px; border-radius:10px; border:1px solid var(--border);">
+              <div><span style="color:var(--muted);">Đang dùng:</span> <strong id="sys-active-conn">--</strong></div>
+              <div><span style="color:var(--muted);">Tốc độ mạng:</span> <strong id="sys-net-speed">-- Mbps</strong></div>
+              <div><span style="color:var(--muted);">Địa chỉ IP:</span> <strong id="sys-ip">--</strong></div>
+              <div><span style="color:var(--muted);">Tín hiệu Wi-Fi:</span> <strong id="sys-rssi">-- dBm</strong></div>
+            </div>
+          </div>
+
+          <!-- CÀI ĐẶT WI-FI ESP32 TỪ XA -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Cài đặt Wi-Fi cho ESP32</h3>
+                <div class="card-sub">Thay đổi mạng Wi-Fi của bo mạch từ xa không cần nạp lại code</div>
+              </div>
+              <span class="tag" id="wifi-sync-tag">Đã đồng bộ</span>
+            </div>
+
+            <label>Tên mạng Wi-Fi (SSID)</label>
+            <input type="text" id="wifi-ssid" placeholder="VD: Nha_Cua_Hung_2.4G">
+
+            <label>Mật khẩu Wi-Fi</label>
+            <input type="password" id="wifi-pass" placeholder="Nhập mật khẩu Wi-Fi mới">
+
+            <button id="btn-save-wifi" onclick="saveWifiConfig()">
+              <i data-lucide="send"></i> Gửi cấu hình Wi-Fi xuống ESP32
+            </button>
+            <p style="font-size:12px; color:var(--muted); margin-top:12px; margin-bottom:0;">
+              Lưu ý: ESP32 chỉ hỗ trợ băng tần 2.4GHz. Sau khi bấm gửi, bo mạch sẽ tự nhận cấu hình mới ở chu kỳ đồng bộ tiếp theo và lưu vào bộ nhớ NVS.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 5: QUẢN LÝ THÀNH VIÊN (ADMIN) -->
+      <div id="tab-users" class="hidden">
+        <div class="card">
+          <div class="card-header"><h3 class="card-title">Thêm thành viên mới</h3></div>
+          <div class="grid-3">
+            <div><label>Tên đăng nhập</label><input type="text" id="new-username" placeholder="VD: thanhvien1"></div>
+            <div><label>Mật khẩu</label><input type="password" id="new-password" placeholder="Nhập mật khẩu"></div>
+            <div><label>Tên hiển thị</label><input type="text" id="new-fullname" placeholder="VD: Nguyễn Văn A"></div>
+          </div>
+          <div class="grid-2" style="align-items:center;">
+            <div>
+              <label>Vai trò</label>
+              <select id="new-role" onchange="onRoleSelectChange()">
+                <option value="operator">Thành viên (Điều khiển theo kênh)</option>
+                <option value="viewer">Khách (Chỉ xem)</option>
+                <option value="admin">Admin (Toàn quyền)</option>
+              </select>
+            </div>
+            <div style="display:flex; gap:18px; padding-top:10px;">
+              <label class="checkbox-row"><input type="checkbox" id="perm-r1" checked> <span id="lbl-perm-r1">Kênh 1</span></label>
+              <label class="checkbox-row"><input type="checkbox" id="perm-r2"> <span id="lbl-perm-r2">Kênh 2</span></label>
+            </div>
+          </div>
+          <button onclick="createUser()"><i data-lucide="user-plus"></i> Thêm thành viên</button>
         </div>
 
         <div class="card">
-          <h3 style="margin-top:0;">Nhật ký hoạt động gần đây</h3>
-          <div style="max-height:330px; overflow-y:auto;">
+          <div class="card-header"><h3 class="card-title">Danh sách thành viên</h3></div>
+          <div style="overflow-x:auto;">
             <table>
-              <thead><tr><th>Thời gian</th><th>Người dùng</th><th>Hoạt động</th></tr></thead>
-              <tbody id="logs-tbody"></tbody>
+              <thead>
+                <tr><th>Tài khoản</th><th>Họ tên</th><th>Vai trò</th><th id="th-r1">Kênh 1</th><th id="th-r2">Kênh 2</th><th>Thao tác</th></tr>
+              </thead>
+              <tbody id="users-tbody"></tbody>
             </table>
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- TAB 3: QUẢN LÝ THÀNH VIÊN (ADMIN) -->
-    <div id="tab-users" class="hidden">
-      <div class="card">
-        <h3 style="margin-top:0;">Thêm thành viên & Cấp quyền điều khiển</h3>
-        <div class="grid-3">
-          <div>
-            <label>Tên đăng nhập</label>
-            <input type="text" id="new-username" placeholder="VD: thanhvien1">
-          </div>
-          <div>
-            <label>Mật khẩu</label>
-            <input type="password" id="new-password" placeholder="Nhập mật khẩu">
-          </div>
-          <div>
-            <label>Tên hiển thị</label>
-            <input type="text" id="new-fullname" placeholder="VD: Nguyễn Văn A">
-          </div>
-        </div>
-        <div class="grid-2" style="align-items:center;">
-          <div>
-            <label>Vai trò</label>
-            <select id="new-role" onchange="onRoleSelectChange()">
-              <option value="operator">Thành viên (Điều khiển theo kênh được cấp)</option>
-              <option value="viewer">Khách (Chỉ xem thông số)</option>
-              <option value="admin">Chủ nhà / Admin (Toàn quyền)</option>
-            </select>
-          </div>
-          <div class="checkbox-group" style="padding-top:16px;">
-            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color:var(--text);">
-              <input type="checkbox" id="perm-r1" checked> <span id="lbl-perm-r1">Quyền Kênh 1</span>
-            </label>
-            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color:var(--text);">
-              <input type="checkbox" id="perm-r2"> <span id="lbl-perm-r2">Quyền Kênh 2</span>
-            </label>
-          </div>
-        </div>
-        <button onclick="createUser()">+ Thêm thành viên</button>
-      </div>
-
-      <div class="card">
-        <h3 style="margin-top:0;">Danh sách thành viên</h3>
-        <div style="overflow-x:auto;">
-          <table>
-            <thead>
-              <tr>
-                <th>Tài khoản</th>
-                <th>Họ tên</th>
-                <th>Vai trò</th>
-                <th id="th-r1">Kênh 1</th>
-                <th id="th-r2">Kênh 2</th>
-                <th>Thao tác</th>
-              </tr>
-            </thead>
-            <tbody id="users-tbody"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+    </main>
   </div>
 
   <script>
@@ -461,38 +753,45 @@
     let chartInstance = null;
     let pollTimer = null;
     let lastSensorList = [];
-
-    // Quản lý trạng thái hiển thị (ẩn/hiện) tối đa 2 kênh Relay
+    let relayCache = [];
     let visibleChannels = JSON.parse(localStorage.getItem('smarthome_visible_channels')) || [1, 2];
 
-    function saveVisibleChannels() {
-      localStorage.setItem('smarthome_visible_channels', JSON.stringify(visibleChannels));
+    lucide.createIcons();
+
+    // Đồng hồ thời gian thực
+    setInterval(() => {
+      const el = document.getElementById('live-clock');
+      if (el) {
+        const now = new Date();
+        el.innerText = now.toLocaleTimeString('vi-VN') + ' • ' + now.toLocaleDateString('vi-VN');
+      }
+    }, 1000);
+
+    function toggleSidebar(e) {
+      e.stopPropagation();
+      document.getElementById('sidebar').classList.toggle('open');
+    }
+    function closeSidebarOnMobile() {
+      document.getElementById('sidebar').classList.remove('open');
     }
 
-    // Chuyển đổi Sáng / Tối
     function applyTheme(theme) {
       document.documentElement.setAttribute('data-theme', theme);
       localStorage.setItem('smarthome_theme', theme);
       const btn = document.getElementById('theme-toggle');
       if (btn) {
-        btn.innerHTML = theme === 'dark' ? '☀️ Chế độ sáng' : '🌙 Chế độ tối';
+        btn.innerHTML = theme === 'dark' ? '<i data-lucide="sun"></i>' : '<i data-lucide="moon"></i>';
+        lucide.createIcons();
       }
       if (lastSensorList.length > 0) renderChart(lastSensorList);
     }
-
     function toggleTheme() {
-      const current = document.documentElement.getAttribute('data-theme') || 'light';
-      applyTheme(current === 'dark' ? 'light' : 'dark');
+      applyTheme((document.documentElement.getAttribute('data-theme') || 'light') === 'dark' ? 'light' : 'dark');
     }
-
-    applyTheme(localStorage.getItem('smarthome_theme') || 'light');
+    applyTheme(localStorage.getItem('smarthome_theme') || 'dark');
 
     async function apiFetch(url, options = {}) {
-      options.headers = {
-        ...options.headers,
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      };
+      options.headers = { ...options.headers, 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
       const res = await fetch(url, options);
       if (res.status === 401) { logout(); throw new Error('Unauthorized'); }
       return res;
@@ -510,10 +809,7 @@
         body: JSON.stringify({ username, password })
       });
       const data = await res.json();
-      if (!res.ok) {
-        errEl.innerText = data.error || 'Đăng nhập thất bại';
-        return;
-      }
+      if (!res.ok) { errEl.innerText = data.error || 'Đăng nhập thất bại'; return; }
       token = data.token;
       localStorage.setItem('iot_token', token);
       initApp();
@@ -535,10 +831,9 @@
         document.getElementById('login-view').classList.add('hidden');
         document.getElementById('app-view').classList.remove('hidden');
 
-        document.getElementById('user-display').innerText = `${currentUser.full_name} (@${currentUser.username})`;
-        const badge = document.getElementById('role-badge');
-        badge.innerText = currentUser.role.toUpperCase();
-        badge.className = `badge ${currentUser.role}`;
+        document.getElementById('user-display').innerText = currentUser.full_name;
+        document.getElementById('user-avatar').innerText = (currentUser.full_name || 'U')[0].toUpperCase();
+        document.getElementById('role-badge').innerText = currentUser.role;
 
         if (currentUser.role === 'admin') {
           document.getElementById('nav-users').classList.remove('hidden');
@@ -546,29 +841,36 @@
         } else {
           document.getElementById('nav-users').classList.add('hidden');
           document.getElementById('btn-save-cfg').disabled = true;
+          document.getElementById('btn-save-wifi').disabled = true;
         }
 
         await loadSettings();
+        await loadWifiConfig();
         await refreshData();
         pollTimer = setInterval(refreshData, 4000);
-      } catch (e) {
+        lucide.createIcons();
+      } catch {
         logout();
       }
     }
 
-    function switchTab(tabId, btnEl) {
-      ['tab-monitor', 'tab-auto', 'tab-users'].forEach(id => document.getElementById(id).classList.add('hidden'));
+    function switchTab(tabId, title, btnEl) {
+      ['tab-monitor', 'tab-schedule', 'tab-auto', 'tab-system', 'tab-users'].forEach(id =>
+        document.getElementById(id).classList.add('hidden')
+      );
       document.getElementById(tabId).classList.remove('hidden');
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('page-title').innerText = title;
+      document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
       btnEl.classList.add('active');
+      closeSidebarOnMobile();
     }
 
     async function loadSettings() {
       const res = await apiFetch('/api/settings');
-      const serverCfg = await res.json();
-      sysSettings.gas_threshold = serverCfg.gas_threshold ?? 600;
-      sysSettings.temp_threshold = serverCfg.temp_threshold ?? 38.0;
-      sysSettings.auto_ventilation = serverCfg.auto_ventilation ?? true;
+      const cfg = await res.json();
+      sysSettings.gas_threshold = cfg.gas_threshold ?? 600;
+      sysSettings.temp_threshold = cfg.temp_threshold ?? 38.0;
+      sysSettings.auto_ventilation = cfg.auto_ventilation ?? true;
 
       document.getElementById('cfg-gas').value = sysSettings.gas_threshold;
       document.getElementById('cfg-temp').value = sysSettings.temp_threshold;
@@ -598,16 +900,128 @@
         const updated = await res.json();
         sysSettings.gas_threshold = updated.gas_threshold;
         sysSettings.temp_threshold = updated.temp_threshold;
-        sysSettings.auto_ventilation = updated.auto_ventilation;
         updateThresholdLabels();
-        alert('Đã lưu cài đặt ngưỡng báo động!');
+        alert('Đã lưu cấu hình ngưỡng báo động.');
         refreshData();
       }
     }
 
-    // Đổi tên thiết bị Relay & lưu xuống Supabase
+    // ================= PHẦN CỨNG: SD CARD, TỐC ĐỘ MẠNG, ETHERNET/WIFI =================
+    async function loadGatewayStatus() {
+      const res = await apiFetch('/api/device/status');
+      const st = await res.json();
+      if (!st) return;
+
+      const isOnline = (Date.now() - new Date(st.last_seen).getTime()) < 60000;
+      document.getElementById('gw-online-dot').className = 'status-dot' + (isOnline ? '' : ' offline');
+
+      const isEth = st.connection_mode === 'ethernet';
+      document.getElementById('gw-conn-text').innerText = isEth ? 'Có dây (LAN)' : 'Không dây (Wi-Fi)';
+      document.getElementById('sys-active-conn').innerText = isEth ? 'Ethernet (W5500)' : 'Wi-Fi 2.4GHz';
+
+      const speedVal = (st.net_speed_mbps || 0).toFixed(1);
+      document.getElementById('gw-speed-text').innerText = `${speedVal} Mbps`;
+      document.getElementById('sys-net-speed').innerText = `${speedVal} Mbps`;
+      document.getElementById('sys-ip').innerText = st.ip_address || 'Chưa kết nối';
+      document.getElementById('sys-rssi').innerText = isEth ? 'N/A (LAN)' : `${st.rssi || 0} dBm`;
+
+      const total = st.sd_total_mb || 1024;
+      const used = st.sd_used_mb || 0;
+      const free = Math.max(0, total - used);
+      const pct = Math.min(100, (used / total) * 100).toFixed(1);
+
+      document.getElementById('gw-sd-text').innerText = `SD: ${free.toFixed(0)} MB trống`;
+      document.getElementById('sd-detail-pct').innerText = `${pct}% đã dùng`;
+      document.getElementById('sd-progress-bar').style.width = `${pct}%`;
+      document.getElementById('sd-used-label').innerText = `Đã dùng: ${used.toFixed(1)} MB`;
+      document.getElementById('sd-free-label').innerText = `Còn trống: ${free.toFixed(1)} MB / ${total.toFixed(0)} MB`;
+
+      document.querySelectorAll('#net-mode-selector .seg-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === (st.preferred_mode || 'auto'));
+      });
+    }
+
+    async function setNetworkMode(mode) {
+      if (currentUser.role !== 'admin') { alert('Chỉ Admin mới được đổi chế độ mạng.'); return; }
+      const res = await apiFetch('/api/device/mode', { method: 'PUT', body: JSON.stringify({ preferred_mode: mode }) });
+      if (res.ok) loadGatewayStatus();
+    }
+
+    async function loadWifiConfig() {
+      const res = await apiFetch('/api/device/wifi');
+      const cfg = await res.json();
+      if (!cfg) return;
+      document.getElementById('wifi-ssid').value = cfg.ssid || '';
+      const tag = document.getElementById('wifi-sync-tag');
+      tag.innerText = cfg.pending_update ? 'Đang chờ ESP32 đồng bộ' : 'Đã đồng bộ';
+      tag.className = cfg.pending_update ? 'tag' : 'tag ok';
+    }
+
+    async function saveWifiConfig() {
+      const ssid = document.getElementById('wifi-ssid').value.trim();
+      const password = document.getElementById('wifi-pass').value;
+      if (!ssid) { alert('Vui lòng nhập tên Wi-Fi (SSID).'); return; }
+      const res = await apiFetch('/api/device/wifi', { method: 'POST', body: JSON.stringify({ ssid, password }) });
+      if (res.ok) {
+        document.getElementById('wifi-pass').value = '';
+        alert('Đã lưu cấu hình Wi-Fi mới. ESP32 sẽ tự động cập nhật khi kết nối.');
+        loadWifiConfig();
+      }
+    }
+
+    // ================= HẸN GIỜ (SCHEDULES) =================
+    async function loadSchedules() {
+      const res = await apiFetch('/api/schedules');
+      const list = await res.json();
+      const tbody = document.getElementById('schedules-tbody');
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--muted);">Chưa có lịch hẹn giờ nào.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = list.map(s => {
+        const rObj = relayCache.find(r => r.relay_id === s.relay_id);
+        const rName = rObj ? rObj.relay_name : `Kênh ${s.relay_id}`;
+        return `
+          <tr>
+            <td><strong>${s.schedule_time}</strong></td>
+            <td>${rName}</td>
+            <td><span class="tag ${s.action ? 'ok' : ''}">${s.action ? 'BẬT' : 'TẮT'}</span></td>
+            <td>
+              <label class="switch" style="transform:scale(0.85); transform-origin:left;">
+                <input type="checkbox" ${s.enabled ? 'checked' : ''} onchange="toggleSchedule(${s.id}, this.checked)">
+                <span class="slider"></span>
+              </label>
+            </td>
+            <td><button class="icon-btn" onclick="deleteSchedule(${s.id})" title="Xóa lịch"><i data-lucide="trash-2"></i></button></td>
+          </tr>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    async function createSchedule() {
+      const payload = {
+        relay_id: document.getElementById('sch-relay').value,
+        action: document.getElementById('sch-action').value === 'true',
+        schedule_time: document.getElementById('sch-time').value
+      };
+      const res = await apiFetch('/api/schedules', { method: 'POST', body: JSON.stringify(payload) });
+      if (res.ok) loadSchedules();
+      else alert((await res.json()).error);
+    }
+
+    async function toggleSchedule(id, enabled) {
+      await apiFetch(`/api/schedules/${id}/toggle`, { method: 'PUT', body: JSON.stringify({ enabled }) });
+    }
+
+    async function deleteSchedule(id) {
+      await apiFetch(`/api/schedules/${id}`, { method: 'DELETE' });
+      loadSchedules();
+    }
+
+    // ================= RELAY & DỮ LIỆU CHÍNH =================
     async function renameRelayDevice(channel, currentName) {
-      const newName = prompt(`Nhập tên mới cho thiết bị trên Kênh ${channel}:`, currentName);
+      const newName = prompt(`Đổi tên thiết bị cho Kênh ${channel}:`, currentName);
       if (newName && newName.trim() && newName.trim() !== currentName) {
         const res = await apiFetch(`/api/relays/${channel}/name`, {
           method: 'PUT',
@@ -618,33 +1032,33 @@
     }
 
     function removeRelayDevice(channel, name) {
-      if (!confirm(`Gỡ "${name}" (Kênh ${channel}) khỏi bảng điều khiển?`)) return;
+      if (!confirm(`Gỡ "${name}" khỏi bảng điều khiển?`)) return;
       visibleChannels = visibleChannels.filter(c => c !== channel);
-      saveVisibleChannels();
+      localStorage.setItem('smarthome_visible_channels', JSON.stringify(visibleChannels));
       refreshData();
     }
 
     async function addRelayDevice() {
       const freeChannel = [1, 2].find(c => !visibleChannels.includes(c));
-      if (!freeChannel) {
-        alert('Bo mạch chỉ hỗ trợ tối đa 2 kênh Relay!');
-        return;
-      }
-      const name = prompt(`Nhập tên thiết bị mới cho Kênh ${freeChannel} (VD: Đèn ngủ, Máy bơm...):`);
+      if (!freeChannel) { alert('Bo mạch hỗ trợ tối đa 2 kênh Relay.'); return; }
+      const name = prompt(`Nhập tên thiết bị cho Kênh ${freeChannel}:`);
       if (name && name.trim()) {
-        await apiFetch(`/api/relays/${freeChannel}/name`, {
-          method: 'PUT',
-          body: JSON.stringify({ relay_name: name.trim() })
-        });
+        await apiFetch(`/api/relays/${freeChannel}/name`, { method: 'PUT', body: JSON.stringify({ relay_name: name.trim() }) });
         visibleChannels.push(freeChannel);
         visibleChannels.sort();
-        saveVisibleChannels();
+        localStorage.setItem('smarthome_visible_channels', JSON.stringify(visibleChannels));
         refreshData();
       }
     }
 
+    async function toggleRelay(id, newState) {
+      const res = await apiFetch(`/api/relays/${id}`, { method: 'POST', body: JSON.stringify({ state: newState }) });
+      if (!res.ok) alert((await res.json()).error);
+      refreshData();
+    }
+
     async function refreshData() {
-      // 1. Cảm biến & Kiểm tra ngưỡng báo động
+      // 1. Cảm biến
       const sRes = await apiFetch('/api/sensors/latest');
       const sensors = await sRes.json();
       lastSensorList = sensors;
@@ -661,89 +1075,79 @@
         const isGasHigh = last.gas_value >= sysSettings.gas_threshold;
 
         document.getElementById('card-temp').classList.toggle('alarm', isTempHigh);
-        document.getElementById('tag-temp').innerText = isTempHigh ? 'Vượt ngưỡng!' : 'Bình thường';
+        document.getElementById('tag-temp').innerText = isTempHigh ? 'Vượt ngưỡng' : 'Bình thường';
+        document.getElementById('tag-temp').className = 'tag ' + (isTempHigh ? 'danger' : 'ok');
         if (isTempHigh) alarms.push(`Nhiệt độ cao (${last.temperature.toFixed(1)}°C)`);
 
         document.getElementById('card-hum').classList.toggle('alarm', isHumHigh);
-        document.getElementById('tag-hum').innerText = isHumHigh ? 'Vượt ngưỡng!' : 'Bình thường';
+        document.getElementById('tag-hum').innerText = isHumHigh ? 'Vượt ngưỡng' : 'Bình thường';
+        document.getElementById('tag-hum').className = 'tag ' + (isHumHigh ? 'danger' : 'ok');
         if (isHumHigh) alarms.push(`Độ ẩm cao (${last.humidity.toFixed(1)}%)`);
 
         document.getElementById('card-gas').classList.toggle('alarm', isGasHigh);
-        document.getElementById('tag-gas').innerText = isGasHigh ? 'NGUY HIỂM!' : 'An toàn';
+        document.getElementById('tag-gas').innerText = isGasHigh ? 'Nguy hiểm' : 'An toàn';
+        document.getElementById('tag-gas').className = 'tag ' + (isGasHigh ? 'danger' : 'ok');
         if (isGasHigh) alarms.push(`Rò rỉ khí Gas (${last.gas_value} ppm)`);
 
         const alertBox = document.getElementById('global-alert');
         if (alarms.length > 0) {
-          document.getElementById('global-alert-text').innerText = 'CẢNH BÁO BÁO ĐỘNG: ' + alarms.join(' • ');
+          document.getElementById('global-alert-text').innerText = 'CẢNH BÁO: ' + alarms.join(' • ');
           alertBox.classList.remove('hidden');
         } else {
           alertBox.classList.add('hidden');
         }
-
         renderChart(sensors);
       }
 
-      // 2. Relays từ Database (tối đa 2 kênh)
+      // 2. Relays
       const rRes = await fetch('/api/relays');
       const relays = await rRes.json();
+      relayCache = relays;
 
-      // Cập nhật nhãn tên thiết bị đồng bộ ở các tab khác
-      const r1Obj = relays.find(r => r.relay_id === 1);
-      const r2Obj = relays.find(r => r.relay_id === 2);
-      if (r1Obj) {
-        document.getElementById('lbl-perm-r1').innerText = `Quyền ${r1Obj.relay_name} (K1)`;
-        document.getElementById('th-r1').innerText = `${r1Obj.relay_name} (K1)`;
+      const r1 = relays.find(r => r.relay_id === 1);
+      const r2 = relays.find(r => r.relay_id === 2);
+      if (r1) {
+        document.getElementById('lbl-perm-r1').innerText = r1.relay_name;
+        document.getElementById('th-r1').innerText = r1.relay_name;
+        document.querySelector('#sch-relay option[value="1"]').innerText = `${r1.relay_name} (Kênh 1)`;
       }
-      if (r2Obj) {
-        document.getElementById('lbl-perm-r2').innerText = `Quyền ${r2Obj.relay_name} (K2)`;
-        document.getElementById('th-r2').innerText = `${r2Obj.relay_name} (K2)`;
-        document.getElementById('lbl-auto-dev').innerText = `${r2Obj.relay_name} (Kênh 2)`;
+      if (r2) {
+        document.getElementById('lbl-perm-r2').innerText = r2.relay_name;
+        document.getElementById('th-r2').innerText = r2.relay_name;
+        document.getElementById('lbl-auto-dev').innerText = r2.relay_name;
+        document.querySelector('#sch-relay option[value="2"]').innerText = `${r2.relay_name} (Kênh 2)`;
       }
 
       const activeRelays = relays.filter(r => visibleChannels.includes(r.relay_id));
-      const addBtn = document.getElementById('btn-add-device');
-      if (visibleChannels.length >= 2) {
-        addBtn.classList.add('hidden');
-      } else {
-        addBtn.classList.remove('hidden');
-      }
+      document.getElementById('btn-add-device').classList.toggle('hidden', visibleChannels.length >= 2);
 
-      const container = document.getElementById('relay-container');
-      if (activeRelays.length === 0) {
-        container.innerHTML = `<div style="text-align:center; padding:24px; color:var(--muted); font-size:13.5px;">Chưa có thiết bị nào. Bấm <strong>+ Thêm thiết bị</strong> để gán vào Kênh 1 hoặc Kênh 2.</div>`;
-      } else {
-        container.innerHTML = activeRelays.map(r => {
-          const isOn = !!r.state;
-          const hasPerm = currentUser.role === 'admin' ||
-                          (currentUser.role === 'operator' && ((r.relay_id === 1 && currentUser.can_relay_1) || (r.relay_id === 2 && currentUser.can_relay_2)));
-
-          return `
-            <div class="relay-card ${isOn ? 'is-on' : ''}">
-              <div class="relay-info">
-                <div class="relay-icon">${r.relay_id === 1 ? '💡' : '🔌'}</div>
-                <div>
-                  <div class="relay-title-row">
-                    <span class="relay-name">${r.relay_name}</span>
-                    <span class="channel-pill">Kênh ${r.relay_id}</span>
-                    <button class="icon-btn" title="Đổi tên thiết bị" onclick="renameRelayDevice(${r.relay_id}, '${r.relay_name.replace(/'/g, "\\'")}')">✏️</button>
-                    <button class="icon-btn" title="Gỡ thiết bị khỏi bảng" onclick="removeRelayDevice(${r.relay_id}, '${r.relay_name.replace(/'/g, "\\'")}')">🗑️</button>
-                  </div>
-                  <div style="font-size:12px; color:var(--muted); margin-top:2px;">
-                    ${isOn ? 'Đang hoạt động' : 'Đang tắt'} • ${hasPerm ? 'Có quyền điều khiển' : 'Chỉ xem'}
-                  </div>
+      document.getElementById('relay-container').innerHTML = activeRelays.map(r => {
+        const isOn = !!r.state;
+        const hasPerm = currentUser.role === 'admin' ||
+          (currentUser.role === 'operator' && ((r.relay_id === 1 && currentUser.can_relay_1) || (r.relay_id === 2 && currentUser.can_relay_2)));
+        return `
+          <div class="relay-tile ${isOn ? 'is-on' : ''}">
+            <div class="relay-left">
+              <div class="relay-icon-box"><i data-lucide="${r.relay_id === 1 ? 'lightbulb' : 'power'}"></i></div>
+              <div>
+                <div class="relay-title-row">
+                  <span class="relay-name">${r.relay_name}</span>
+                  <span class="tag">Kênh ${r.relay_id}</span>
+                  <button class="icon-btn" onclick="renameRelayDevice(${r.relay_id}, '${r.relay_name.replace(/'/g, "\\'")}')" title="Đổi tên"><i data-lucide="pencil"></i></button>
+                  <button class="icon-btn" onclick="removeRelayDevice(${r.relay_id}, '${r.relay_name.replace(/'/g, "\\'")}')" title="Gỡ thiết bị"><i data-lucide="trash-2"></i></button>
                 </div>
+                <div style="font-size:12px; color:var(--muted);">${isOn ? 'Đang bật' : 'Đang tắt'} • ${hasPerm ? 'Có quyền điều khiển' : 'Chỉ xem'}</div>
               </div>
-              <label class="switch" title="${isOn ? 'Tắt thiết bị' : 'Bật thiết bị'}">
-                <input type="checkbox" ${isOn ? 'checked' : ''} ${hasPerm ? '' : 'disabled'}
-                  onchange="toggleRelay(${r.relay_id}, this.checked)">
-                <span class="slider"></span>
-              </label>
             </div>
-          `;
-        }).join('');
-      }
+            <label class="switch">
+              <input type="checkbox" ${isOn ? 'checked' : ''} ${hasPerm ? '' : 'disabled'} onchange="toggleRelay(${r.relay_id}, this.checked)">
+              <span class="slider"></span>
+            </label>
+          </div>
+        `;
+      }).join('');
 
-      // 3. Nhật ký
+      // 3. Nhật ký, Lịch hẹn & Phần cứng
       const lRes = await apiFetch('/api/logs');
       const logs = await lRes.json();
       document.getElementById('logs-tbody').innerHTML = logs.map(l => `
@@ -753,32 +1157,10 @@
           <td>${l.action_desc}</td>
         </tr>
       `).join('');
-    }
 
-    async function toggleRelay(id, newState) {
-      const res = await apiFetch(`/api/relays/${id}`, {
-        method: 'POST',
-        body: JSON.stringify({ state: newState })
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        alert(err.error);
-      }
-      refreshData();
-    }
-
-    async function simulateESP32() {
-      const payload = {
-        temperature: +(27 + Math.random() * 13).toFixed(1),
-        humidity: +(55 + Math.random() * 35).toFixed(1),
-        gas_value: Math.floor(200 + Math.random() * 550)
-      };
-      await fetch('/api/sensors', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      refreshData();
+      await loadGatewayStatus();
+      await loadSchedules();
+      lucide.createIcons();
     }
 
     async function exportCSV() {
@@ -786,17 +1168,14 @@
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
-      a.download = 'baocao_smarthome.csv';
-      a.click();
+      a.href = url; a.download = 'baocao_smarthome.csv'; a.click();
     }
 
+    // ================= QUẢN LÝ THÀNH VIÊN =================
     function onRoleSelectChange() {
       const role = document.getElementById('new-role').value;
-      const r1 = document.getElementById('perm-r1');
-      const r2 = document.getElementById('perm-r2');
-      if (role === 'admin') { r1.checked = true; r2.checked = true; }
-      if (role === 'viewer') { r1.checked = false; r2.checked = false; }
+      if (role === 'admin') { document.getElementById('perm-r1').checked = true; document.getElementById('perm-r2').checked = true; }
+      if (role === 'viewer') { document.getElementById('perm-r1').checked = false; document.getElementById('perm-r2').checked = false; }
     }
 
     async function createUser() {
@@ -808,21 +1187,14 @@
         can_relay_1: document.getElementById('perm-r1').checked,
         can_relay_2: document.getElementById('perm-r2').checked
       };
-      if (!payload.username || !payload.password || !payload.full_name) {
-        alert('Vui lòng điền đầy đủ thông tin!');
-        return;
-      }
+      if (!payload.username || !payload.password || !payload.full_name) { alert('Vui lòng điền đủ thông tin.'); return; }
       const res = await apiFetch('/api/users', { method: 'POST', body: JSON.stringify(payload) });
       if (res.ok) {
         document.getElementById('new-username').value = '';
         document.getElementById('new-password').value = '';
         document.getElementById('new-fullname').value = '';
         loadUsers();
-        refreshData();
-      } else {
-        const err = await res.json();
-        alert(err.error);
-      }
+      } else alert((await res.json()).error);
     }
 
     async function loadUsers() {
@@ -833,7 +1205,7 @@
           <td><strong>${u.username}</strong></td>
           <td>${u.full_name}</td>
           <td>
-            <select style="margin:0; padding:6px;" onchange="updateUserPerm(${u.id}, this.value, ${u.can_relay_1}, ${u.can_relay_2})" ${u.username === 'admin' ? 'disabled' : ''}>
+            <select style="margin:0; padding:5px;" onchange="updateUserPerm(${u.id}, this.value, ${u.can_relay_1}, ${u.can_relay_2})" ${u.username === 'admin' ? 'disabled' : ''}>
               <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
               <option value="operator" ${u.role === 'operator' ? 'selected' : ''}>Operator</option>
               <option value="viewer" ${u.role === 'viewer' ? 'selected' : ''}>Viewer</option>
@@ -841,23 +1213,18 @@
           </td>
           <td><input type="checkbox" ${u.can_relay_1 ? 'checked' : ''} ${u.username === 'admin' ? 'disabled' : ''} onchange="updateUserPerm(${u.id}, '${u.role}', this.checked, ${u.can_relay_2})"></td>
           <td><input type="checkbox" ${u.can_relay_2 ? 'checked' : ''} ${u.username === 'admin' ? 'disabled' : ''} onchange="updateUserPerm(${u.id}, '${u.role}', ${u.can_relay_1}, this.checked)"></td>
-          <td>
-            ${u.username !== 'admin' ? `<button class="danger" style="padding:6px 10px; font-size:12px;" onclick="deleteUser(${u.id})">Xóa</button>` : '<span style="color:var(--muted); font-size:12px;">Mặc định</span>'}
-          </td>
+          <td>${u.username !== 'admin' ? `<button class="danger" style="padding:5px 10px; font-size:12px;" onclick="deleteUser(${u.id})">Xóa</button>` : '<span style="color:var(--muted);">Mặc định</span>'}</td>
         </tr>
       `).join('');
     }
 
     async function updateUserPerm(id, role, r1, r2) {
-      await apiFetch(`/api/users/${id}/permissions`, {
-        method: 'PUT',
-        body: JSON.stringify({ role, can_relay_1: r1, can_relay_2: r2 })
-      });
+      await apiFetch(`/api/users/${id}/permissions`, { method: 'PUT', body: JSON.stringify({ role, can_relay_1: r1, can_relay_2: r2 }) });
       loadUsers();
     }
 
     async function deleteUser(id) {
-      if (!confirm('Bạn chắc chắn muốn xóa thành viên này?')) return;
+      if (!confirm('Xóa thành viên này?')) return;
       await apiFetch(`/api/users/${id}`, { method: 'DELETE' });
       loadUsers();
     }
@@ -874,14 +1241,14 @@
         data: {
           labels,
           datasets: [
-            { label: 'Nhiệt độ (°C)', data: data.map(d => d.temperature), borderColor: '#0ea5e9', backgroundColor: 'rgba(14,165,233,0.1)', fill: true, tension: 0.35 },
-            { label: 'Độ ẩm (%)', data: data.map(d => d.humidity), borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.35 }
+            { label: 'Nhiệt độ (°C)', data: data.map(d => d.temperature), borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.35, pointRadius: 2 },
+            { label: 'Độ ẩm (%)', data: data.map(d => d.humidity), borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.35, pointRadius: 2 }
           ]
         },
         options: {
           responsive: true,
           animation: false,
-          plugins: { legend: { labels: { color: textColor } } },
+          plugins: { legend: { labels: { color: textColor, boxWidth: 12 } } },
           scales: {
             y: { grid: { color: gridColor }, ticks: { color: textColor } },
             x: { grid: { color: gridColor }, ticks: { color: textColor } }
