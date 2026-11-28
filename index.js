@@ -16,10 +16,73 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ================= KHỞI TẠO DATABASE & ADMIN MẶC ĐỊNH =================
+// ================= KHỞI TẠO ĐẦY ĐỦ DATABASE & DỮ LIỆU MẶC ĐỊNH =================
 async function initDatabase() {
   try {
-    // 1. Tạo bảng Hẹn giờ (Schedules)
+    // 1. Bảng người dùng & phân quyền
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(50) UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        full_name VARCHAR(100) NOT NULL,
+        role VARCHAR(20) DEFAULT 'operator',
+        can_relay_1 BOOLEAN DEFAULT true,
+        can_relay_2 BOOLEAN DEFAULT false,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+
+    // 2. Bảng trạng thái 2 kênh Relay
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS device_states (
+        relay_id INT PRIMARY KEY,
+        relay_name VARCHAR(100) NOT NULL,
+        state BOOLEAN DEFAULT false,
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+    await pool.query(`
+      INSERT INTO device_states (relay_id, relay_name, state)
+      VALUES (1, 'Đèn phòng khách', false), (2, 'Quạt thông gió', false)
+      ON CONFLICT (relay_id) DO NOTHING;
+    `);
+
+    // 3. Bảng dữ liệu cảm biến (dự phòng khi gắn lại cảm biến sau này)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS sensor_logs (
+        id SERIAL PRIMARY KEY,
+        device_id VARCHAR(50) DEFAULT 'esp32_gateway_01',
+        temperature REAL DEFAULT 0,
+        humidity REAL DEFAULT 0,
+        gas_value INT DEFAULT 0,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+
+    // 4. Bảng ngưỡng cảnh báo hệ thống
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS system_settings (
+        id INT PRIMARY KEY DEFAULT 1,
+        gas_threshold INT DEFAULT 600,
+        temp_threshold REAL DEFAULT 38.0,
+        auto_ventilation BOOLEAN DEFAULT true,
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+    await pool.query(`INSERT INTO system_settings (id) VALUES (1) ON CONFLICT (id) DO NOTHING;`);
+
+    // 5. Bảng nhật ký thao tác
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS action_logs (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(50) NOT NULL,
+        action_desc TEXT NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+
+    // 6. Bảng Hẹn giờ (Schedules)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS schedules (
         id SERIAL PRIMARY KEY,
@@ -29,11 +92,11 @@ async function initDatabase() {
         repeat_days VARCHAR(50) DEFAULT 'daily',
         enabled BOOLEAN DEFAULT true,
         last_triggered_date VARCHAR(20),
-        created_at TIMESTAMP DEFAULT NOW()
+        created_at TIMESTAMPTZ DEFAULT NOW()
       );
     `);
 
-    // 2. Tạo bảng Trạng thái phần cứng & Mạng (SD Card, Ethernet/Wi-Fi, Tốc độ mạng)
+    // 7. Bảng Trạng thái phần cứng & Mạng (dùng TIMESTAMPTZ để không lệch múi giờ)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS gateway_status (
         id INT PRIMARY KEY DEFAULT 1,
@@ -44,24 +107,28 @@ async function initDatabase() {
         ip_address VARCHAR(50) DEFAULT '0.0.0.0',
         sd_total_mb REAL DEFAULT 1024,
         sd_used_mb REAL DEFAULT 0,
-        last_seen TIMESTAMP DEFAULT NOW()
+        last_seen TIMESTAMPTZ DEFAULT NOW()
       );
     `);
+    await pool.query(`
+      ALTER TABLE gateway_status
+      ALTER COLUMN last_seen TYPE TIMESTAMPTZ USING last_seen AT TIME ZONE 'UTC';
+    `).catch(() => {});
     await pool.query(`INSERT INTO gateway_status (id) VALUES (1) ON CONFLICT (id) DO NOTHING;`);
 
-    // 3. Tạo bảng Cấu hình Wi-Fi từ xa cho ESP32
+    // 8. Bảng Cấu hình Wi-Fi từ xa cho ESP32
     await pool.query(`
       CREATE TABLE IF NOT EXISTS wifi_config (
         id INT PRIMARY KEY DEFAULT 1,
         ssid VARCHAR(100) DEFAULT '',
         password VARCHAR(100) DEFAULT '',
         pending_update BOOLEAN DEFAULT false,
-        updated_at TIMESTAMP DEFAULT NOW()
+        updated_at TIMESTAMPTZ DEFAULT NOW()
       );
     `);
     await pool.query(`INSERT INTO wifi_config (id) VALUES (1) ON CONFLICT (id) DO NOTHING;`);
 
-    // 4. Tài khoản Admin mặc định
+    // 9. Tài khoản Admin mặc định
     const { rows } = await pool.query("SELECT id FROM users WHERE username = 'admin'");
     if (rows.length === 0) {
       const hash = await bcrypt.hash('123456', 10);
@@ -72,7 +139,7 @@ async function initDatabase() {
       );
       console.log('[INIT] Đã tạo tài khoản mặc định: admin / 123456');
     }
-    console.log('[INIT] Database đã sẵn sàng.');
+    console.log('[INIT] Toàn bộ Database đã sẵn sàng.');
   } catch (err) {
     console.error('Lỗi khởi tạo Database:', err.message);
   }
@@ -209,32 +276,37 @@ app.delete('/api/users/:id', authMiddleware, async (req, res) => {
   res.json({ success: true });
 });
 
-// ================= API CẢM BIẾN =================
+// ================= API CẢM BIẾN (AN TOÀN KHI CHƯA GẮN CẢM BIẾN) =================
 app.post('/api/sensors', async (req, res) => {
   try {
-    const { device_id = 'esp32_gateway_01', temperature, humidity, gas_value } = req.body;
+    const device_id = req.body.device_id || 'esp32_gateway_01';
+    const temp = Number.isFinite(Number(req.body.temperature)) ? Number(req.body.temperature) : 0;
+    const hum = Number.isFinite(Number(req.body.humidity)) ? Number(req.body.humidity) : 0;
+    const gas = Number.isFinite(Number(req.body.gas_value)) ? Math.round(Number(req.body.gas_value)) : 0;
+
     const { rows } = await pool.query(
       'INSERT INTO sensor_logs (device_id, temperature, humidity, gas_value) VALUES ($1, $2, $3, $4) RETURNING *',
-      [device_id, temperature, humidity, gas_value]
+      [device_id, temp, hum, gas]
     );
 
     const cfgRes = await pool.query('SELECT * FROM system_settings WHERE id = 1');
     const cfg = cfgRes.rows[0];
-    if (cfg && cfg.auto_ventilation && gas_value >= cfg.gas_threshold) {
+    if (cfg && cfg.auto_ventilation && gas >= cfg.gas_threshold) {
       const relay2 = await pool.query('SELECT state, relay_name FROM device_states WHERE relay_id = 2');
       if (relay2.rows[0] && !relay2.rows[0].state) {
         const devName = relay2.rows[0].relay_name || 'Thiết bị Kênh 2';
         await pool.query('UPDATE device_states SET state = true, updated_at = NOW() WHERE relay_id = 2');
         await pool.query('INSERT INTO action_logs (username, action_desc) VALUES ($1, $2)', [
           'SYSTEM_AUTO',
-          `Cảnh báo Gas (${gas_value} ppm >= ${cfg.gas_threshold} ppm) -> Tự động BẬT ${devName}`,
+          `Cảnh báo Gas (${gas} ppm >= ${cfg.gas_threshold} ppm) -> Tự động BẬT ${devName}`,
         ]);
       }
     }
 
     await pool.query("DELETE FROM sensor_logs WHERE created_at < NOW() - INTERVAL '30 days'");
     res.status(201).json(rows[0]);
-  } catch {
+  } catch (err) {
+    console.error('Lỗi POST /api/sensors:', err.message);
     res.status(500).json({ error: 'Lỗi ghi dữ liệu cảm biến' });
   }
 });
@@ -294,7 +366,7 @@ app.post('/api/relays/:id', authMiddleware, async (req, res) => {
 
   const { rows } = await pool.query(
     'UPDATE device_states SET state = $1, updated_at = NOW() WHERE relay_id = $2 RETURNING *',
-    [state, relayId]
+    [!!state, relayId]
   );
 
   const deviceName = rows[0]?.relay_name || `Thiết bị Kênh ${relayId}`;
@@ -345,7 +417,6 @@ app.delete('/api/schedules/:id', authMiddleware, async (req, res) => {
 });
 
 // ================= API PHẦN CỨNG: SD CARD, TỐC ĐỘ MẠNG, ETHERNET/WIFI =================
-// ESP32 gửi trạng thái phần cứng định kỳ lên endpoint này
 app.post('/api/device/status', async (req, res) => {
   try {
     const { connection_mode, net_speed_mbps, rssi, ip_address, sd_total_mb, sd_used_mb } = req.body;
@@ -362,18 +433,17 @@ app.post('/api/device/status', async (req, res) => {
       [connection_mode, net_speed_mbps, rssi, ip_address, sd_total_mb, sd_used_mb]
     );
     res.json(rows[0]);
-  } catch {
+  } catch (err) {
+    console.error('Lỗi POST /api/device/status:', err.message);
     res.status(500).json({ error: 'Lỗi cập nhật trạng thái phần cứng' });
   }
 });
 
-// Web lấy trạng thái phần cứng
 app.get('/api/device/status', authMiddleware, async (req, res) => {
   const { rows } = await pool.query('SELECT * FROM gateway_status WHERE id = 1');
   res.json(rows[0]);
 });
 
-// Web chọn chế độ ưu tiên kết nối (ethernet / wifi / auto)
 app.put('/api/device/mode', authMiddleware, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ error: 'Chỉ Admin mới được đổi chế độ mạng' });
   const { preferred_mode } = req.body;
@@ -412,7 +482,6 @@ app.post('/api/device/wifi', authMiddleware, async (req, res) => {
   res.json(rows[0]);
 });
 
-// Endpoint tổng hợp cho ESP32 kéo cấu hình Wi-Fi + Chế độ mạng (khi mạch mới về)
 app.get('/api/esp32/config', async (req, res) => {
   const wifiRes = await pool.query('SELECT ssid, password, pending_update FROM wifi_config WHERE id = 1');
   const netRes = await pool.query('SELECT preferred_mode FROM gateway_status WHERE id = 1');
@@ -422,7 +491,6 @@ app.get('/api/esp32/config', async (req, res) => {
   });
 });
 
-// ESP32 gọi endpoint này sau khi đã lưu Wi-Fi mới thành công vào NVS
 app.post('/api/esp32/wifi-ack', async (req, res) => {
   await pool.query('UPDATE wifi_config SET pending_update = false WHERE id = 1');
   res.json({ success: true });
